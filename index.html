@@ -426,22 +426,27 @@ const CK_BASE = 'https://www.clubkonnect.com/API';
 const NET_CODES = {MTN:'01',Airtel:'04',Glo:'02','9mobile':'03'};
 
 async function ckRequest(endpoint, params){
-  const url = new URL(CK_BASE + endpoint);
-  url.searchParams.set("UserID", CK_USER_ID);
-  url.searchParams.set("APIToken", CK_API_TOKEN);
-  for(const [k,v] of Object.entries(params)) url.searchParams.set(k,v);
+  const targetUrl = new URL(CK_BASE + endpoint);
+  targetUrl.searchParams.set("UserID", CK_USER_ID);
+  targetUrl.searchParams.set("APIToken", CK_API_TOKEN);
+  for(const [k,v] of Object.entries(params)) targetUrl.searchParams.set(k,v);
+  const encoded = encodeURIComponent(targetUrl.toString());
   const proxies = [
-    "https://corsproxy.io/?",
-    "https://api.allorigins.win/raw?url=",
+    `https://corsproxy.io/?${encoded}`,
+    `https://api.allorigins.win/raw?url=${encoded}`,
+    `https://thingproxy.freeboard.io/fetch/${targetUrl.toString()}`,
   ];
-  for(const proxy of proxies){
+  let lastErr = "";
+  for(const proxyUrl of proxies){
     try{
-      const res = await fetch(proxy + encodeURIComponent(url.toString()));
+      const res = await fetch(proxyUrl, {headers:{"X-Requested-With":"XMLHttpRequest"}});
+      if(!res.ok) continue;
       const text = await res.text();
+      if(text.includes("404") || text.includes("not found")) continue;
       try{return JSON.parse(text);}catch(e){return {status:"error",message:text};}
-    }catch(e){ continue; }
+    }catch(e){ lastErr=e.message; continue; }
   }
-  return {status:"error",message:"Network error. Check your connection."};
+  return {status:"error",message:"Could not reach payment server. Check internet connection."};
 }
 
 // ===== STATE =====
