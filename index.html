@@ -419,34 +419,20 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ===== CLUBKONNECT =====
-const CK_USER_ID = 'CK101282816';
-const CK_API_TOKEN = 'LN9R04NUVN2ZRI172944E64LPMVN5Y731Q3CVE3J8ZF33Q5LC4C55T7N9D22A983';
-const CK_BASE = 'https://www.clubkonnect.com/API';
-const NET_CODES = {MTN:'01',Airtel:'04',Glo:'02','9mobile':'03'};
+// ===== BACKEND API (Render.com) =====
+const BACKEND_URL = "https://quicktop-backend-8aon.onrender.com";
+const NET_CODES = {MTN:"01",Airtel:"04",Glo:"02","9mobile":"03"};
 
-async function ckRequest(endpoint, params){
-  const targetUrl = new URL(CK_BASE + endpoint);
-  targetUrl.searchParams.set("UserID", CK_USER_ID);
-  targetUrl.searchParams.set("APIToken", CK_API_TOKEN);
-  for(const [k,v] of Object.entries(params)) targetUrl.searchParams.set(k,v);
-  const encoded = encodeURIComponent(targetUrl.toString());
-  const proxies = [
-    `https://corsproxy.io/?${encoded}`,
-    `https://api.allorigins.win/raw?url=${encoded}`,
-    `https://thingproxy.freeboard.io/fetch/${targetUrl.toString()}`,
-  ];
-  let lastErr = "";
-  for(const proxyUrl of proxies){
-    try{
-      const res = await fetch(proxyUrl, {headers:{"X-Requested-With":"XMLHttpRequest"}});
-      if(!res.ok) continue;
-      const text = await res.text();
-      if(text.includes("404") || text.includes("not found")) continue;
-      try{return JSON.parse(text);}catch(e){return {status:"error",message:text};}
-    }catch(e){ lastErr=e.message; continue; }
+async function ckRequest(type, params){
+  try{
+    const url = new URL(BACKEND_URL + "/" + type);
+    for(const [k,v] of Object.entries(params)) url.searchParams.set(k,v);
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    return data;
+  }catch(e){
+    return {status:"error",message:"Could not reach payment server. Try again."};
   }
-  return {status:"error",message:"Could not reach payment server. Check internet connection."};
 }
 
 // ===== STATE =====
@@ -661,11 +647,11 @@ window.buyData = async function(){
 
   try{
     const ref = 'QT'+Date.now();
-    const result = await ckRequest('/databundle.asp',{
-      MobileNetwork:NET_CODES[selectedDataNet],
-      DataPlan:plan.ckCode,
-      MobileNumber:phone,
-      RequestID:ref
+    const result = await ckRequest('data',{
+      network:NET_CODES[selectedDataNet],
+      plan:plan.ckCode,
+      phone:phone,
+      ref:ref
     });
     btn.textContent='Buy Data';btn.disabled=false;
 
@@ -699,11 +685,11 @@ window.buyAirtime = async function(){
 
   try{
     const ref = 'QT'+Date.now();
-    const result = await ckRequest('/airtime.asp',{
-      MobileNetwork:NET_CODES[selectedAirtimeNet],
-      Amount:amount,
-      MobileNumber:phone,
-      RequestID:ref
+    const result = await ckRequest('airtime',{
+      network:NET_CODES[selectedAirtimeNet],
+      amount:amount,
+      phone:phone,
+      ref:ref
     });
     btn.textContent='Buy Airtime';btn.disabled=false;
 
