@@ -487,19 +487,24 @@ function obNext(){
       document.getElementById('obNextBtn').textContent = 'Get Started';
     }
   } else {
-    obSkip();
+    obSkip(); // calls login screen
   }
 }
 
 function obSkip(){
   document.getElementById('onboardingScreen').classList.remove('active');
   localStorage.setItem('qt_onboarded','1');
+  // Show login screen after onboarding
+  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('loginScreen').classList.add('active');
 }
 
 function checkOnboarding(){
+  // Show onboarding only for first-time visitors
   if(!localStorage.getItem('qt_onboarded')){
     document.getElementById('onboardingScreen').classList.add('active');
   }
+  // Always show login — never auto-login to dashboard
 }
 
 // ===== PASSWORD EYE TOGGLE =====
@@ -597,16 +602,11 @@ const dataPlans = {
 // ===== AUTH STATE =====
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('appLoader').style.display = 'none';
-  if(user){
-    currentUser = user;
-    await loadUserProfile();
-    enterApp();
-  } else {
-    currentUser = null;
-    userProfile = null;
-    checkOnboarding();
-    showAuth('loginScreen');
-  }
+  // Always start from onboarding or login — never auto-jump to dashboard
+  currentUser = null;
+  userProfile = null;
+  checkOnboarding();
+  showAuth('loginScreen');
 });
 
 // ===== FIRESTORE HELPERS =====
@@ -642,6 +642,8 @@ async function loadTransactions(){
 
 // ===== AUTH ACTIONS =====
 window.showAuth = function(id){
+  document.getElementById('appLoader').style.display='none';
+  document.getElementById('onboardingScreen').classList.remove('active');
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('bottomNav').style.display='none';
@@ -690,7 +692,10 @@ window.doLogin = async function(){
   btn.textContent='Signing in...';btn.disabled=true;
 
   try{
-    await signInWithEmailAndPassword(auth, email, pass);
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    currentUser = cred.user;
+    await loadUserProfile();
+    enterApp();
   }catch(e){
     errEl.textContent = e.code==='auth/invalid-credential'?'Incorrect email or password. Try again.':e.message;
     btn.textContent='Sign In';btn.disabled=false;
