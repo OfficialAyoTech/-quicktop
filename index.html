@@ -655,7 +655,7 @@ window.buyData = async function(){
     });
     btn.textContent='Buy Data';btn.disabled=false;
 
-    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL';
+    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
     if(ok){
       const newBal = (userProfile.balance||0) - plan.price;
       await saveBalance(newBal);
@@ -693,7 +693,7 @@ window.buyAirtime = async function(){
     });
     btn.textContent='Buy Airtime';btn.disabled=false;
 
-    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL';
+    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
     if(ok){
       const newBal = (userProfile.balance||0) - amount;
       await saveBalance(newBal);
