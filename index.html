@@ -163,9 +163,66 @@
   .empty-state .empty-icon{font-size:48px;margin-bottom:16px;}
   .empty-state p{color:var(--text2);font-size:14px;}
   .error-msg{color:var(--danger);font-size:13px;margin-top:-10px;margin-bottom:12px;padding-left:4px;}
+
+  /* ONBOARDING */
+  #onboardingScreen{position:fixed;inset:0;background:var(--bg);z-index:998;display:none;flex-direction:column;}
+  #onboardingScreen.active{display:flex;}
+  .ob-slides{flex:1;overflow:hidden;position:relative;}
+  .ob-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;opacity:0;transform:translateX(100%);transition:all .4s cubic-bezier(.4,0,.2,1);}
+  .ob-slide.active{opacity:1;transform:translateX(0);}
+  .ob-slide.prev{opacity:0;transform:translateX(-100%);}
+  .ob-emoji{font-size:80px;margin-bottom:28px;animation:floatUp .6s ease;}
+  @keyframes floatUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .ob-title{font-size:26px;font-weight:800;text-align:center;margin-bottom:14px;line-height:1.2;}
+  .ob-title span{color:var(--accent);}
+  .ob-desc{font-size:15px;color:var(--text2);text-align:center;line-height:1.6;}
+  .ob-dots{display:flex;gap:8px;justify-content:center;padding:24px 0 8px;}
+  .ob-dot{width:8px;height:8px;border-radius:50%;background:var(--surface2);transition:all .3s;}
+  .ob-dot.active{width:24px;border-radius:4px;background:var(--accent);}
+  .ob-actions{padding:0 24px 48px;display:flex;flex-direction:column;gap:12px;}
+  .btn-outline{width:100%;background:transparent;border:1.5px solid var(--surface2);color:var(--text2);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;}
+  .pass-wrap{position:relative;}
+  .pass-wrap input{padding-right:48px !important;}
+  .eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:4px;}
 </style>
 </head>
 <body>
+
+<!-- ONBOARDING -->
+<div id="onboardingScreen">
+  <div class="ob-slides">
+    <div class="ob-slide active" id="ob0">
+      <div class="ob-emoji">⚡</div>
+      <div class="ob-title">Buy Airtime and Data<br><span>in Seconds</span></div>
+      <div class="ob-desc">Recharge all Nigerian networks instantly. MTN, Airtel, Glo, 9mobile — always available.</div>
+    </div>
+    <div class="ob-slide" id="ob1">
+      <div class="ob-emoji">🧾</div>
+      <div class="ob-title">Pay Bills<br><span>Without Stress</span></div>
+      <div class="ob-desc">Electricity, cable TV, internet subscriptions and more — all in one place.</div>
+    </div>
+    <div class="ob-slide" id="ob2">
+      <div class="ob-emoji">🔐</div>
+      <div class="ob-title">Fund Your Wallet<span> Securely</span></div>
+      <div class="ob-desc">Bank transfer, cards, or virtual account funding. Fast, safe and reliable.</div>
+    </div>
+    <div class="ob-slide" id="ob3">
+      <div class="ob-emoji">🎁</div>
+      <div class="ob-title">Earn While<br><span>You Spend</span></div>
+      <div class="ob-desc">Referral commissions and cashback rewards. Share QuickTop and earn every time.</div>
+    </div>
+  </div>
+  <div class="ob-dots">
+    <div class="ob-dot active" id="dot0"></div>
+    <div class="ob-dot" id="dot1"></div>
+    <div class="ob-dot" id="dot2"></div>
+    <div class="ob-dot" id="dot3"></div>
+  </div>
+  <div class="ob-actions">
+    <button class="btn-primary" id="obNextBtn" onclick="obNext()">Next</button>
+    <button class="btn-outline" onclick="obSkip()">Skip</button>
+  </div>
+</div>
 
 <!-- LOADER -->
 <div id="appLoader">
@@ -189,7 +246,10 @@
   </div>
   <div class="form-group">
     <label>Password</label>
-    <input type="password" id="loginPass" placeholder="Enter password"/>
+    <div class="pass-wrap">
+      <input type="password" id="loginPass" placeholder="Enter password"/>
+      <button class="eye-btn" onclick="toggleEye('loginPass',this)" tabindex="-1">👁️</button>
+    </div>
   </div>
   <div class="error-msg" id="loginError"></div>
   <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign In</button>
@@ -219,7 +279,17 @@
   </div>
   <div class="form-group">
     <label>Password</label>
-    <input type="password" id="signupPass" placeholder="Min 6 characters"/>
+    <div class="pass-wrap">
+      <input type="password" id="signupPass" placeholder="Min 6 characters"/>
+      <button class="eye-btn" onclick="toggleEye('signupPass',this)" tabindex="-1">👁️</button>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Confirm Password</label>
+    <div class="pass-wrap">
+      <input type="password" id="signupConfirm" placeholder="Re-enter password"/>
+      <button class="eye-btn" onclick="toggleEye('signupConfirm',this)" tabindex="-1">👁️</button>
+    </div>
   </div>
   <div class="error-msg" id="signupError"></div>
   <button class="btn-primary" id="signupBtn" onclick="doSignup()">Create Account</button>
@@ -399,6 +469,52 @@
   <div class="nav-item" onclick="goTo('profileScreen')" id="nav-profile"><div class="nav-icon">👤</div><div class="nav-label">Profile</div><div class="nav-dot"></div></div>
 </div>
 
+<!-- ONBOARDING + EYE JS -->
+<script>
+// ===== ONBOARDING =====
+let obCurrent = 0;
+const obTotal = 4;
+
+function obNext(){
+  if(obCurrent < obTotal - 1){
+    document.getElementById('ob'+obCurrent).classList.remove('active');
+    document.getElementById('ob'+obCurrent).classList.add('prev');
+    document.getElementById('dot'+obCurrent).classList.remove('active');
+    obCurrent++;
+    document.getElementById('ob'+obCurrent).classList.add('active');
+    document.getElementById('dot'+obCurrent).classList.add('active');
+    if(obCurrent === obTotal - 1){
+      document.getElementById('obNextBtn').textContent = 'Get Started';
+    }
+  } else {
+    obSkip();
+  }
+}
+
+function obSkip(){
+  document.getElementById('onboardingScreen').classList.remove('active');
+  localStorage.setItem('qt_onboarded','1');
+}
+
+function checkOnboarding(){
+  if(!localStorage.getItem('qt_onboarded')){
+    document.getElementById('onboardingScreen').classList.add('active');
+  }
+}
+
+// ===== PASSWORD EYE TOGGLE =====
+function toggleEye(inputId, btn){
+  const input = document.getElementById(inputId);
+  if(input.type === 'password'){
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+</script>
+
 <!-- FIREBASE + APP SCRIPTS -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -488,6 +604,7 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     currentUser = null;
     userProfile = null;
+    checkOnboarding();
     showAuth('loginScreen');
   }
 });
@@ -539,10 +656,12 @@ window.doSignup = async function(){
   const errEl = document.getElementById('signupError');
   errEl.textContent = '';
 
+  const confirm = document.getElementById('signupConfirm').value.trim();
   if(!name){errEl.textContent='Enter your full name';return;}
   if(!phone||phone.length<10){errEl.textContent='Enter a valid phone number';return;}
   if(!email){errEl.textContent='Enter your email';return;}
   if(!pass||pass.length<6){errEl.textContent='Password must be at least 6 characters';return;}
+  if(pass!==confirm){errEl.textContent='Passwords do not match';return;}
 
   const btn = document.getElementById('signupBtn');
   btn.textContent='Creating account...';btn.disabled=true;
