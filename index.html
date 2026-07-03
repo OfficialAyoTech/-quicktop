@@ -228,6 +228,45 @@
   .pass-wrap{position:relative;}
   .pass-wrap input{padding-right:48px !important;}
   .eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:4px;}
+
+  /* LOADING SPINNER */
+  .btn-primary.loading{opacity:.8;cursor:not-allowed;position:relative;}
+  .btn-primary.loading::after{
+    content:'';
+    position:absolute;
+    width:18px;height:18px;
+    border:2.5px solid rgba(10,15,30,.3);
+    border-top-color:#0A0F1E;
+    border-radius:50%;
+    right:16px;top:50%;
+    margin-top:-9px;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  
+  /* PROCESSING OVERLAY */
+  #processingOverlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(10,15,30,.7);
+    z-index:500;align-items:center;justify-content:center;
+    flex-direction:column;gap:16px;
+  }
+  #processingOverlay.show{display:flex;}
+  .processing-card{
+    background:var(--surface);border-radius:20px;
+    padding:32px 40px;text-align:center;
+    border:1px solid var(--surface2);
+  }
+  .spinner-big{
+    width:56px;height:56px;
+    border:4px solid var(--surface2);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin .8s linear infinite;
+    margin:0 auto 16px;
+  }
+  .processing-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+  .processing-sub{font-size:13px;color:var(--text2);}
 </style>
 </head>
 <body>
@@ -514,6 +553,15 @@
   </div>
 </div>
 
+<!-- PROCESSING OVERLAY -->
+<div id="processingOverlay">
+  <div class="processing-card">
+    <div class="spinner-big"></div>
+    <div class="processing-title" id="processingTitle">Processing...</div>
+    <div class="processing-sub" id="processingSub">Please wait, do not close</div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- BOTTOM NAV -->
@@ -622,36 +670,91 @@ let transactions = [];
 
 const dataPlans = {
   MTN:[
-    {size:'500MB',validity:'30 days',price:149,ckCode:'MDS1'},
-    {size:'1GB',validity:'30 days',price:249,ckCode:'MDS2'},
-    {size:'2GB',validity:'30 days',price:449,ckCode:'MDS3'},
-    {size:'5GB',validity:'30 days',price:999,ckCode:'MDS4'},
-    {size:'10GB',validity:'30 days',price:1799,ckCode:'MDS5'},
-    {size:'20GB',validity:'30 days',price:3299,ckCode:'MDS6'},
+    {size:'500MB Weekly',validity:'SME',price:307,ckCode:'500'},
+    {size:'500MB Monthly',validity:'SME',price:307,ckCode:'500.00'},
+    {size:'1GB Weekly',validity:'SME',price:410,ckCode:'1000'},
+    {size:'1GB Monthly',validity:'SME',price:563,ckCode:'1000.00'},
+    {size:'2GB Weekly',validity:'SME',price:820,ckCode:'2000'},
+    {size:'2GB Monthly',validity:'SME',price:1117,ckCode:'2000.00'},
+    {size:'3GB Weekly',validity:'SME',price:1230,ckCode:'3000'},
+    {size:'5GB Weekly',validity:'SME',price:2050,ckCode:'5000'},
+    {size:'110MB',validity:'1 day Awoof',price:97,ckCode:'100.01'},
+    {size:'230MB',validity:'1 day Awoof',price:194,ckCode:'200.01'},
+    {size:'500MB',validity:'1 day Awoof',price:340,ckCode:'350.01'},
+    {size:'1GB+1.5min',validity:'1 day Awoof',price:485,ckCode:'500.01'},
+    {size:'2.5GB',validity:'1 day Awoof',price:728,ckCode:'750.01'},
+    {size:'500MB',validity:'7 days Direct',price:485,ckCode:'500.02'},
+    {size:'1GB',validity:'7 days Direct',price:776,ckCode:'800.01'},
+    {size:'2GB+2min',validity:'30 days Direct',price:1455,ckCode:'1500.02'},
+    {size:'2.7GB+2min',validity:'30 days Direct',price:1940,ckCode:'2000.01'},
+    {size:'3.5GB+5min',validity:'30 days Direct',price:2425,ckCode:'2500.02'},
+    {size:'7GB',validity:'30 days Direct',price:3395,ckCode:'3500.02'},
+    {size:'10GB+10min',validity:'30 days Direct',price:4365,ckCode:'4500.01'},
+    {size:'20GB',validity:'30 days Direct',price:7275,ckCode:'7500.01'},
   ],
   Airtel:[
-    {size:'500MB',validity:'30 days',price:139,ckCode:'ADS1'},
-    {size:'1GB',validity:'30 days',price:239,ckCode:'ADS2'},
-    {size:'2GB',validity:'30 days',price:429,ckCode:'ADS3'},
-    {size:'5GB',validity:'30 days',price:949,ckCode:'ADS4'},
-    {size:'10GB',validity:'30 days',price:1699,ckCode:'ADS5'},
-    {size:'20GB',validity:'30 days',price:3099,ckCode:'ADS6'},
+    {size:'1GB',validity:'1 day Awoof',price:485,ckCode:'499.91'},
+    {size:'1.5GB',validity:'2 days Awoof',price:582,ckCode:'599.91'},
+    {size:'2GB',validity:'2 days Awoof',price:728,ckCode:'749.91'},
+    {size:'3GB',validity:'2 days Awoof',price:970,ckCode:'999.91'},
+    {size:'5GB',validity:'2 days Awoof',price:1455,ckCode:'1499.91'},
+    {size:'500MB',validity:'7 days Direct',price:485,ckCode:'499.92'},
+    {size:'1GB',validity:'7 days Direct',price:776,ckCode:'799.91'},
+    {size:'1.5GB',validity:'7 days Direct',price:970,ckCode:'999.92'},
+    {size:'3.5GB',validity:'7 days Direct',price:1455,ckCode:'1499.92'},
+    {size:'6GB',validity:'7 days Direct',price:2425,ckCode:'2499.91'},
+    {size:'10GB',validity:'7 days Direct',price:2910,ckCode:'2999.91'},
+    {size:'2GB',validity:'30 days Direct',price:1455,ckCode:'1499.93'},
+    {size:'3GB',validity:'30 days Direct',price:1940,ckCode:'1999.91'},
+    {size:'4GB',validity:'30 days Direct',price:2425,ckCode:'2499.92'},
+    {size:'8GB',validity:'30 days Direct',price:2910,ckCode:'2999.92'},
+    {size:'10GB',validity:'30 days Direct',price:3880,ckCode:'3999.91'},
+    {size:'18GB',validity:'30 days Direct',price:5820,ckCode:'5999.91'},
+    {size:'25GB',validity:'30 days Direct',price:7760,ckCode:'7999.91'},
   ],
   Glo:[
-    {size:'1GB',validity:'30 days',price:199,ckCode:'GDS1'},
-    {size:'2GB',validity:'30 days',price:399,ckCode:'GDS2'},
-    {size:'5GB',validity:'30 days',price:899,ckCode:'GDS3'},
-    {size:'10GB',validity:'30 days',price:1599,ckCode:'GDS4'},
-    {size:'15GB',validity:'30 days',price:2199,ckCode:'GDS5'},
-    {size:'30GB',validity:'30 days',price:3999,ckCode:'GDS6'},
+    {size:'200MB',validity:'14 days SME',price:94,ckCode:'200'},
+    {size:'500MB',validity:'7 days SME',price:230,ckCode:'500'},
+    {size:'1GB',validity:'3 days SME',price:322,ckCode:'1000.11'},
+    {size:'3GB',validity:'3 days SME',price:968,ckCode:'3000.11'},
+    {size:'1GB',validity:'7 days SME',price:357,ckCode:'1000.12'},
+    {size:'1GB',validity:'30 days SME',price:461,ckCode:'1000'},
+    {size:'2GB',validity:'30 days SME',price:922,ckCode:'2000'},
+    {size:'3GB',validity:'30 days SME',price:1383,ckCode:'3000'},
+    {size:'5GB',validity:'30 days SME',price:2306,ckCode:'5000'},
+    {size:'10GB',validity:'30 days SME',price:4612,ckCode:'10000'},
+    {size:'125MB',validity:'1 day Awoof',price:97,ckCode:'100.01'},
+    {size:'260MB',validity:'2 day Awoof',price:194,ckCode:'200.01'},
+    {size:'1.5GB',validity:'14 days Direct',price:485,ckCode:'501.01'},
+    {size:'2.6GB',validity:'30 days Direct',price:970,ckCode:'1000.01'},
+    {size:'5GB',validity:'30 days Direct',price:1455,ckCode:'1500.01'},
+    {size:'6.15GB',validity:'30 days Direct',price:1940,ckCode:'2000.01'},
+    {size:'7.5GB',validity:'30 days Direct',price:2425,ckCode:'2500.01'},
+    {size:'10GB',validity:'30 days Direct',price:2910,ckCode:'3000.01'},
   ],
   '9mobile':[
-    {size:'500MB',validity:'30 days',price:129,ckCode:'EDS1'},
-    {size:'1GB',validity:'30 days',price:229,ckCode:'EDS2'},
-    {size:'2GB',validity:'30 days',price:419,ckCode:'EDS3'},
-    {size:'5GB',validity:'30 days',price:899,ckCode:'EDS4'},
-    {size:'10GB',validity:'30 days',price:1599,ckCode:'EDS5'},
-    {size:'20GB',validity:'30 days',price:2999,ckCode:'EDS6'},
+    {size:'50MB',validity:'30 days SME',price:25,ckCode:'50'},
+    {size:'100MB',validity:'30 days SME',price:51,ckCode:'100'},
+    {size:'300MB',validity:'30 days SME',price:153,ckCode:'300'},
+    {size:'500MB',validity:'30 days SME',price:246,ckCode:'500'},
+    {size:'1GB',validity:'30 days SME',price:492,ckCode:'1000'},
+    {size:'2GB',validity:'30 days SME',price:984,ckCode:'2000'},
+    {size:'3GB',validity:'30 days SME',price:1476,ckCode:'3000'},
+    {size:'5GB',validity:'30 days SME',price:2460,ckCode:'5000'},
+    {size:'10GB',validity:'30 days SME',price:4920,ckCode:'10000'},
+    {size:'15GB',validity:'30 days SME',price:7380,ckCode:'15000'},
+    {size:'100MB',validity:'1 day Awoof',price:93,ckCode:'100.01'},
+    {size:'180MB',validity:'1 day Awoof',price:140,ckCode:'150.01'},
+    {size:'250MB',validity:'1 day Awoof',price:186,ckCode:'200.01'},
+    {size:'450MB',validity:'1 day Awoof',price:326,ckCode:'350.01'},
+    {size:'650MB',validity:'3 days Awoof',price:465,ckCode:'500.01'},
+    {size:'650MB',validity:'14 days Direct',price:558,ckCode:'600.01'},
+    {size:'1.1GB',validity:'30 days Direct',price:930,ckCode:'1000.01'},
+    {size:'1.4GB',validity:'30 days Direct',price:1116,ckCode:'1200.01'},
+    {size:'2.44GB',validity:'30 days Direct',price:1860,ckCode:'2000.01'},
+    {size:'3.17GB',validity:'30 days Direct',price:2325,ckCode:'2500.01'},
+    {size:'5.1GB',validity:'30 days Direct',price:3720,ckCode:'4000.01'},
+    {size:'6.5GB',validity:'30 days Direct',price:4650,ckCode:'5000.01'},
   ]
 };
 
@@ -859,7 +962,8 @@ window.buyData = async function(){
   if((userProfile.balance||0)<plan.price){showToast('Insufficient balance. Fund your wallet first.');return;}
 
   const btn = document.getElementById('dataBuyBtn');
-  btn.textContent='Processing...';btn.disabled=true;
+  btn.textContent='Processing...';btn.disabled=true;btn.classList.add('loading');
+  showProcessing('Buying Data...', `Sending ${plan.size} to ${phone}`);
 
   try{
     const ref = 'QT'+Date.now();
@@ -869,7 +973,7 @@ window.buyData = async function(){
       phone:phone,
       ref:ref
     });
-    btn.textContent='Buy Data';btn.disabled=false;
+    btn.textContent='Buy Data';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
 
     const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
     if(ok){
@@ -883,7 +987,7 @@ window.buyData = async function(){
       showToast('❌ '+(result?.message||result?.response_description||'Transaction failed'));
     }
   }catch(e){
-    btn.textContent='Buy Data';btn.disabled=false;
+    btn.textContent='Buy Data';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
     showToast('Network error. Try again.');
   }
 }
@@ -897,7 +1001,8 @@ window.buyAirtime = async function(){
   if((userProfile.balance||0)<amount){showToast('Insufficient balance. Fund your wallet first.');return;}
 
   const btn = document.getElementById('airtimeBtn');
-  btn.textContent='Processing...';btn.disabled=true;
+  btn.textContent='Processing...';btn.disabled=true;btn.classList.add('loading');
+  showProcessing('Sending Airtime...', `Topping up ${phone} with ₦${amount.toLocaleString()}`);
 
   try{
     const ref = 'QT'+Date.now();
@@ -907,7 +1012,7 @@ window.buyAirtime = async function(){
       phone:phone,
       ref:ref
     });
-    btn.textContent='Buy Airtime';btn.disabled=false;
+    btn.textContent='Buy Airtime';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
 
     const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
     if(ok){
@@ -921,7 +1026,7 @@ window.buyAirtime = async function(){
       showToast('❌ '+(result?.message||result?.response_description||'Transaction failed'));
     }
   }catch(e){
-    btn.textContent='Buy Airtime';btn.disabled=false;
+    btn.textContent='Buy Airtime';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
     showToast('Network error. Try again.');
   }
 }
@@ -987,6 +1092,14 @@ function txHTML(tx){
   </div>`;
 }
 
+window.showProcessing = function(title, sub){
+  document.getElementById('processingTitle').textContent = title || 'Processing...';
+  document.getElementById('processingSub').textContent = sub || 'Please wait, do not close';
+  document.getElementById('processingOverlay').classList.add('show');
+}
+window.hideProcessing = function(){
+  document.getElementById('processingOverlay').classList.remove('show');
+}
 window.showToast = function(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
@@ -1031,6 +1144,18 @@ function initTheme(){
 
 // Init theme on load
 initTheme();
+
+// ===== KEEP BACKEND ALIVE =====
+// Ping backend every 10 minutes so Render free tier never sleeps
+function pingBackend(){
+  fetch(BACKEND_URL + '/')
+    .then(() => console.log('Backend alive ✅'))
+    .catch(() => console.log('Backend ping failed'));
+}
+// Ping immediately on load to pre-warm
+pingBackend();
+// Then every 10 minutes
+setInterval(pingBackend, 10 * 60 * 1000);
 
 // Register Service Worker
 if('serviceWorker' in navigator){
