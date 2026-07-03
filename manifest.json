@@ -2,7 +2,7 @@
   "name": "QuickTop - Cheap Data & Airtime",
   "short_name": "QuickTop",
   "description": "Buy cheap data and airtime instantly. Pay bills, fund wallet and earn rewards.",
-  "start_url": "/",
+  "start_url": "/-quicktop/",
   "display": "standalone",
   "background_color": "#0A0F1E",
   "theme_color": "#00E676",
