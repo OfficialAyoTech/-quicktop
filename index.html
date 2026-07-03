@@ -4,6 +4,15 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>QuickTop — Cheap Data & Airtime</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#00E676"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="QuickTop"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   :root{
@@ -13,6 +22,41 @@
     --mtn:#FFD700;--airtel:#E53935;--glo:#4CAF50;--mobile:#0056A2;
     --radius:16px;--radius-sm:10px;
   }
+  body.light-mode{
+    --bg:#F0F4FF;--surface:#FFFFFF;--surface2:#E8EEF8;
+    --text:#0A0F1E;--text2:#4A5568;
+  }
+  body.light-mode .wallet-card{background:linear-gradient(135deg,#0D2137,#0A3D52);}
+  body.light-mode .wallet-card .wallet-label,
+  body.light-mode .wallet-card .wallet-balance,
+  body.light-mode .wallet-card .wallet-btn{color:#F0F4FF;}
+  body.light-mode .auth-screen{background:var(--bg);}
+  body.light-mode #onboardingScreen{background:var(--bg);}
+  body.light-mode{
+    --bg:#F0F4FF;--surface:#FFFFFF;--surface2:#E8EDF8;
+    --text:#0A0F1E;--text2:#4A5568;
+  }
+  body.light-mode .wallet-card{background:linear-gradient(135deg,#00BFA5,#00897B);}
+  body.light-mode .wallet-card .wallet-label,
+  body.light-mode .wallet-card .wallet-balance,
+  body.light-mode .wallet-balance span,
+  body.light-mode .wallet-btn{color:#fff;}
+  body.light-mode .bottom-nav{box-shadow:0 -2px 12px rgba(0,0,0,.08);}
+  body.light-mode .net-pill{border-color:#E8EDF8;}
+  body.light-mode .plan-card{border-color:#E8EDF8;}
+  body.light-mode .input-stack{border-color:#E8EDF8;}
+  body.light-mode .form-group input{border-color:#E8EDF8;color:#0A0F1E;}
+  body.light-mode .tx-item{border-color:#E8EDF8;}
+  body.light-mode #onboardingScreen{background:#F0F4FF;}
+  body.light-mode .ob-title{color:#0A0F1E;}
+  body.light-mode .ob-dot{background:#E8EDF8;}
+  body.light-mode .btn-outline{border-color:#E8EDF8;color:#4A5568;}
+  body.light-mode .auth-logo h1{color:#0A0F1E;}
+  body.light-mode .modal-sheet{background:#FFFFFF;}
+  body.light-mode .bank-details{background:#F0F4FF;}
+  body.light-mode .menu-item{background:#FFFFFF;}
+  body.light-mode .menu-icon{background:#F0F4FF;}
+  body.light-mode .profile-header{background:#F0F4FF;}
   body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
 
   /* LOADER */
@@ -192,7 +236,7 @@
 <div id="onboardingScreen">
   <div class="ob-slides">
     <div class="ob-slide active" id="ob0">
-      <div class="ob-emoji">⚡</div>
+      <img src="icon-192.png" alt="QuickTop" style="width:90px;height:90px;border-radius:24px;margin-bottom:24px;"/>
       <div class="ob-title">Buy Airtime and Data<br><span>in Seconds</span></div>
       <div class="ob-desc">Recharge all Nigerian networks instantly. MTN, Airtel, Glo, 9mobile — always available.</div>
     </div>
@@ -226,15 +270,14 @@
 
 <!-- LOADER -->
 <div id="appLoader">
-  <div class="logo-icon">⚡</div>
-  <h1>Quick<span>Top</span></h1>
-  <p>Loading...</p>
+  <img src="logo-full.png" alt="QuickTop" style="width:220px;margin-bottom:16px;border-radius:12px;"/>
+  <p style="color:#8B9BBE;font-size:14px;margin-top:8px;">Loading...</p>
 </div>
 
 <!-- LOGIN -->
 <div class="auth-screen" id="loginScreen">
   <div class="auth-logo">
-    <div class="logo-icon">⚡</div>
+    <img src="icon-192.png" alt="QuickTop" style="width:72px;height:72px;border-radius:20px;margin-bottom:12px;"/>
     <h1>Quick<span>Top</span></h1>
     <p>Cheap data & airtime, instantly</p>
   </div>
@@ -259,7 +302,7 @@
 <!-- SIGNUP -->
 <div class="auth-screen" id="signupScreen">
   <div class="auth-logo">
-    <div class="logo-icon">⚡</div>
+    <img src="icon-192.png" alt="QuickTop" style="width:72px;height:72px;border-radius:20px;margin-bottom:12px;"/>
     <h1>Quick<span>Top</span></h1>
     <p>Cheap data & airtime, instantly</p>
   </div>
@@ -419,6 +462,9 @@
     </div>
   </div>
   <div class="profile-menu">
+    <div class="menu-item" onclick="toggleTheme()" id="themeMenuItem">
+      <div class="menu-icon">🌙</div><div class="menu-text"><p id="themeLabel">Switch to Light Mode</p><span id="themeSubLabel">Currently dark mode</span></div><div class="menu-arrow">›</div>
+    </div>
     <div class="menu-item" onclick="showToast('Coming soon!')">
       <div class="menu-icon">🔔</div><div class="menu-text"><p>Notifications</p><span>Manage alerts</span></div><div class="menu-arrow">›</div>
     </div>
@@ -427,6 +473,16 @@
     </div>
     <div class="menu-item" onclick="showToast('Coming soon!')">
       <div class="menu-icon">🛠️</div><div class="menu-text"><p>Support</p><span>Chat with us</span></div><div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="toggleTheme()" id="themeMenuItem">
+      <div class="menu-icon" id="themeIcon">🌙</div>
+      <div class="menu-text">
+        <p id="themeLabel">Switch to Light Mode</p>
+        <span id="themeDesc">Currently in dark mode</span>
+      </div>
+      <div style="width:44px;height:24px;background:var(--accent);border-radius:50px;position:relative;cursor:pointer;" id="themeToggle">
+        <div id="themeThumb" style="position:absolute;width:18px;height:18px;background:#0A0F1E;border-radius:50%;top:3px;left:3px;transition:transform .3s;"></div>
+      </div>
     </div>
   </div>
   <div class="logout-btn" onclick="doLogout()">Log Out</div>
@@ -641,6 +697,42 @@ async function loadTransactions(){
 }
 
 // ===== AUTH ACTIONS =====
+// ===== THEME TOGGLE =====
+window.toggleTheme = function(){
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('qt_theme', isLight ? 'light' : 'dark');
+  updateThemeUI(isLight);
+}
+
+function updateThemeUI(isLight){
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  const desc = document.getElementById('themeDesc');
+  const thumb = document.getElementById('themeThumb');
+  if(isLight){
+    if(icon) icon.textContent = '☀️';
+    if(label) label.textContent = 'Switch to Dark Mode';
+    if(desc) desc.textContent = 'Currently in light mode';
+    if(thumb) thumb.style.transform = 'translateX(20px)';
+  } else {
+    if(icon) icon.textContent = '🌙';
+    if(label) label.textContent = 'Switch to Light Mode';
+    if(desc) desc.textContent = 'Currently in dark mode';
+    if(thumb) thumb.style.transform = 'translateX(0)';
+  }
+}
+
+function loadTheme(){
+  const saved = localStorage.getItem('qt_theme');
+  if(saved === 'light'){
+    document.body.classList.add('light-mode');
+    updateThemeUI(true);
+  }
+}
+
+// Load theme immediately
+loadTheme();
+
 window.showAuth = function(id){
   document.getElementById('appLoader').style.display='none';
   document.getElementById('onboardingScreen').classList.remove('active');
@@ -903,6 +995,92 @@ window.showToast = function(msg){
 
 function fmt(n){return parseFloat(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function now(){return new Date().toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+</script>
+<script>
+// ===== THEME SWITCHER =====
+function toggleTheme(){
+  const body = document.body;
+  const isLight = body.classList.toggle('light-mode');
+  localStorage.setItem('qt_theme', isLight ? 'light' : 'dark');
+  updateThemeUI(isLight);
+  showToast(isLight ? '☀️ Light mode on' : '🌙 Dark mode on');
+}
+
+function updateThemeUI(isLight){
+  const icon = document.querySelector('#themeMenuItem .menu-icon');
+  const label = document.getElementById('themeLabel');
+  const sub = document.getElementById('themeSubLabel');
+  if(isLight){
+    icon.textContent = '☀️';
+    label.textContent = 'Switch to Dark Mode';
+    sub.textContent = 'Currently light mode';
+  } else {
+    icon.textContent = '🌙';
+    label.textContent = 'Switch to Light Mode';
+    sub.textContent = 'Currently dark mode';
+  }
+}
+
+function initTheme(){
+  const saved = localStorage.getItem('qt_theme');
+  if(saved === 'light'){
+    document.body.classList.add('light-mode');
+    updateThemeUI(true);
+  }
+}
+
+// Init theme on load
+initTheme();
+
+// Register Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner after 3 seconds
+  setTimeout(() => {
+    if(deferredPrompt) showInstallBanner();
+  }, 3000);
+});
+
+function showInstallBanner(){
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = `
+    position:fixed;bottom:90px;left:16px;right:16px;
+    background:#111827;border:1.5px solid #00E676;
+    border-radius:16px;padding:16px;z-index:300;
+    display:flex;align-items:center;gap:12px;
+    box-shadow:0 4px 24px rgba(0,0,0,.5);
+  `;
+  banner.innerHTML = `
+    <div style="font-size:32px">⚡</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:700;color:#F0F4FF;">Install QuickTop</div>
+      <div style="font-size:12px;color:#8B9BBE;margin-top:2px;">Add to home screen for faster access</div>
+    </div>
+    <button onclick="installApp()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Install</button>
+    <button onclick="document.getElementById('installBanner').remove()" style="background:none;border:none;color:#8B9BBE;font-size:20px;cursor:pointer;">×</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner')?.remove();
+}
 </script>
 </body>
 </html>
