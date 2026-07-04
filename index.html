@@ -532,24 +532,15 @@
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">Fund Your Wallet</div>
-    <div class="info-box">Transfer to the account below. Your wallet is credited <strong>automatically</strong> within 2 minutes.</div>
-    <div class="bank-details">
-      <div class="bank-row"><span class="bank-label">Bank</span><span class="bank-value">Wema Bank</span></div>
-      <div class="bank-row">
-        <span class="bank-label">Account Number</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="bank-value">0123456789</span>
-          <button class="copy-btn" onclick="copyAcct()">Copy</button>
-        </div>
-      </div>
-      <div class="bank-row"><span class="bank-label">Account Name</span><span class="bank-value">QuickTop/YourName</span></div>
+    <div class="info-box" style="background:rgba(255,83,112,.06);border-color:rgba(255,83,112,.3);">
+      ⚠️ <strong style="color:#FF5370;">Coming Soon!</strong> Online wallet funding via card and bank transfer is being set up. For now, contact us on WhatsApp to fund your wallet manually.
     </div>
-    <p style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:16px;">Minimum: ₦100 • Any amount, any time</p>
-    <div class="input-stack" style="margin-bottom:12px;">
-      <label>Or simulate funding (demo)</label>
-      <input type="number" id="fundAmount" placeholder="e.g. 5000"/>
-    </div>
-    <button class="btn-primary" onclick="fundWallet()">Add to Wallet</button>
+    <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20want%20to%20fund%20my%20wallet" 
+       target="_blank"
+       style="display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;border-radius:12px;padding:14px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:12px;">
+      <span style="font-size:20px;">💬</span> Chat on WhatsApp
+    </a>
+    <p style="font-size:12px;color:var(--text2);text-align:center;">Send payment proof → We credit your wallet within minutes</p>
   </div>
 </div>
 
@@ -897,6 +888,39 @@ window.doLogin = async function(){
   }
 }
 
+// ===== ADMIN MANUAL CREDIT (only you can use this) =====
+window.adminCreditUser = async function(){
+  const adminPass = prompt('Enter admin password:');
+  if(adminPass !== 'AyoTech2024Admin!'){
+    showToast('Unauthorized');
+    return;
+  }
+  const userEmail = prompt('Enter user email to credit:');
+  const amount = parseFloat(prompt('Enter amount to credit (₦):'));
+  if(!userEmail || !amount || amount < 1){
+    showToast('Invalid details');
+    return;
+  }
+  try{
+    // Find user by email in Firestore
+    const {collection, query, where, getDocs, updateDoc, doc, addDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const usersRef = collection(db,'users');
+    const q = query(usersRef, where('email','==',userEmail));
+    const snap = await getDocs(q);
+    if(snap.empty){showToast('User not found');return;}
+    const userDoc = snap.docs[0];
+    const userData = userDoc.data();
+    const newBal = (userData.balance||0) + amount;
+    await updateDoc(doc(db,'users',userDoc.id),{balance:newBal});
+    await addDoc(collection(db,'users',userDoc.id,'transactions'),{
+      type:'fund',amount,timestamp:Date.now(),date:now(),note:'Manual credit by admin'
+    });
+    showToast('✅ ₦'+amount.toLocaleString()+' credited to '+userEmail);
+  }catch(e){
+    showToast('Error: '+e.message);
+  }
+}
+
 window.doLogout = async function(){
   await signOut(auth);
   document.getElementById('bottomNav').style.display='none';
@@ -1037,14 +1061,8 @@ window.closeFundModal = function(e){if(e.target.id==='fundModal')document.getEle
 window.copyAcct = function(){navigator.clipboard.writeText('0123456789').catch(()=>{});showToast('Account number copied!');}
 
 window.fundWallet = async function(){
-  const amt = parseFloat(document.getElementById('fundAmount').value);
-  if(!amt||amt<100){showToast('Minimum fund amount is ₦100');return;}
-  const newBal = (userProfile.balance||0) + amt;
-  await saveBalance(newBal);
-  await saveTransaction({type:'fund',amount:amt,timestamp:Date.now(),date:now()});
-  document.getElementById('fundModal').classList.remove('show');
-  document.getElementById('fundAmount').value='';
-  showToast('₦'+amt.toLocaleString()+' added to wallet!');
+  // Demo funding disabled - Paystack integration coming soon
+  showToast('Please contact WhatsApp to fund wallet');
 }
 
 // ===== SUCCESS =====
