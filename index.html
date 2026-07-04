@@ -271,6 +271,17 @@
 </head>
 <body>
 
+<script>
+// Run IMMEDIATELY before anything else loads
+// Check if first time visitor and show onboarding right away
+(function(){
+  if(!localStorage.getItem('qt_onboarded')){
+    // Will be shown once DOM is ready
+    window._showOnboarding = true;
+  }
+})();
+</script>
+
 <!-- ONBOARDING -->
 <div id="onboardingScreen">
   <div class="ob-slides">
@@ -587,8 +598,9 @@ function obNext(){
 }
 
 function obSkip(){
-  document.getElementById('onboardingScreen').classList.remove('active');
   localStorage.setItem('qt_onboarded','1');
+  window._showOnboarding = false;
+  document.getElementById('onboardingScreen').classList.remove('active');
   // Show login screen after onboarding
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('loginScreen').classList.add('active');
@@ -750,13 +762,21 @@ const dataPlans = {
 };
 
 // ===== AUTH STATE =====
+// Check onboarding BEFORE Firebase loads
+document.addEventListener('DOMContentLoaded', () => {
+  checkOnboarding();
+});
+
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('appLoader').style.display = 'none';
   // Always start from onboarding or login — never auto-jump to dashboard
   currentUser = null;
   userProfile = null;
-  checkOnboarding();
-  showAuth('loginScreen');
+  // Only show login if onboarding already seen
+  if(localStorage.getItem('qt_onboarded')){
+    showAuth('loginScreen');
+  }
+  // If not onboarded, checkOnboarding already handled it above
 });
 
 // ===== FIRESTORE HELPERS =====
