@@ -522,18 +522,26 @@ const dataPlans = {
 // Check onboarding BEFORE Firebase loads
 document.addEventListener('DOMContentLoaded', () => {
   checkOnboarding();
+  // Safety timeout - if Firebase doesn't load in 5 seconds, show login anyway
+  setTimeout(() => {
+    const loader = document.getElementById('appLoader');
+    if(loader && loader.style.display !== 'none'){
+      loader.style.display = 'none';
+      checkOnboarding();
+      if(localStorage.getItem('qt_onboarded')){
+        showAuth('loginScreen');
+      }
+    }
+  }, 5000);
 });
 
 onAuthStateChanged(auth, async (user) => {
   document.getElementById('appLoader').style.display = 'none';
-  // Always start from onboarding or login — never auto-jump to dashboard
   currentUser = null;
   userProfile = null;
-  // Only show login if onboarding already seen
   if(localStorage.getItem('qt_onboarded')){
     showAuth('loginScreen');
   }
-  // If not onboarded, checkOnboarding already handled it above
 });
 
 // ===== FIRESTORE HELPERS =====
@@ -1066,6 +1074,16 @@ function initTheme(){
 
 // Init theme on load
 initTheme();
+
+// Hide loader after max 8 seconds no matter what
+setTimeout(() => {
+  const loader = document.getElementById('appLoader');
+  if(loader) loader.style.display = 'none';
+  if(!document.querySelector('.screen.active') && !document.querySelector('.auth-screen.active')){
+    checkOnboarding();
+    if(localStorage.getItem('qt_onboarded')) showAuth('loginScreen');
+  }
+}, 8000);
 
 // ===== KEEP BACKEND ALIVE =====
 // Ping backend every 10 minutes so Render free tier never sleeps
