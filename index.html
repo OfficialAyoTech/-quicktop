@@ -57,10 +57,11 @@
   body.light-mode .menu-item{background:#FFFFFF;}
   body.light-mode .menu-icon{background:#F0F4FF;}
   body.light-mode .profile-header{background:#F0F4FF;}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
+  html,body{background:#0A0F1E;color:#F0F4FF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);}
 
   /* LOADER */
-  #appLoader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
+  #appLoader{position:fixed;inset:0;background:#0A0F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
   @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
   #appLoader h1{font-size:28px;font-weight:800;}#appLoader h1 span{color:var(--accent);}
   #appLoader p{color:var(--text2);font-size:14px;margin-top:8px;}
@@ -282,14 +283,9 @@
 <body>
 
 <script>
-// Run IMMEDIATELY before anything else loads
-// Check if first time visitor and show onboarding right away
-(function(){
-  if(!localStorage.getItem('qt_onboarded')){
-    // Will be shown once DOM is ready
-    window._showOnboarding = true;
-  }
-})();
+window._showOnboarding = !localStorage.getItem('qt_onboarded');
+// Force dark background immediately
+document.documentElement.style.background = '#0A0F1E';
 </script>
 
 <!-- ONBOARDING -->
@@ -329,7 +325,7 @@
 </div>
 
 <!-- LOADER -->
-<div id="appLoader">
+<div id="appLoader" style="background:#0A0F1E;">
   <img src="icon-192.png" style="width:80px;height:80px;border-radius:24px;margin-bottom:20px;animation:pulse 1.5s infinite;"/>
   <p style="color:#8B9BBE;font-size:13px;">Loading...</p>
 </div>
