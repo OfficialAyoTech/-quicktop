@@ -284,8 +284,39 @@ body{background:var(--bg);color:var(--text);}
 
 <script>
 window._showOnboarding = !localStorage.getItem('qt_onboarded');
-// Force dark background immediately
 document.documentElement.style.background = '#0A0F1E';
+
+// Detect offline immediately
+if(!navigator.onLine){
+  document.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if(loader){
+      loader.innerHTML = `
+        <div style="text-align:center;padding:24px;">
+          <div style="font-size:48px;margin-bottom:16px;">📡</div>
+          <div style="font-size:20px;font-weight:800;color:#F0F4FF;margin-bottom:8px;">No Internet</div>
+          <div style="font-size:14px;color:#8B9BBE;margin-bottom:24px;">Please check your connection<br>and try again</div>
+          <button onclick="location.reload()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Retry</button>
+        </div>`;
+    }
+  });
+}
+
+// Listen for connection changes
+window.addEventListener('online', () => location.reload());
+window.addEventListener('offline', () => {
+  const loader = document.getElementById('appLoader');
+  if(loader){
+    loader.style.display = 'flex';
+    loader.innerHTML = `
+      <div style="text-align:center;padding:24px;">
+        <div style="font-size:48px;margin-bottom:16px;">📡</div>
+        <div style="font-size:20px;font-weight:800;color:#F0F4FF;margin-bottom:8px;">No Internet</div>
+        <div style="font-size:14px;color:#8B9BBE;margin-bottom:24px;">Please check your connection<br>and try again</div>
+        <button onclick="location.reload()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Retry</button>
+      </div>`;
+  }
+});
 </script>
 
 <!-- ONBOARDING -->
