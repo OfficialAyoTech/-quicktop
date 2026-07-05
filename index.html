@@ -4,1178 +4,915 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>QuickTop — Cheap Data & Airtime</title>
-
-<!-- PWA -->
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#00E676"/>
-<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="QuickTop"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  :root{
-    --bg:#0A0F1E;--surface:#111827;--surface2:#1A2235;
-    --accent:#00E676;--accent2:#00BFA5;--text:#F0F4FF;
-    --text2:#8B9BBE;--danger:#FF5370;
-    --mtn:#FFD700;--airtel:#E53935;--glo:#4CAF50;--mobile:#0056A2;
-    --radius:16px;--radius-sm:10px;
-  }
-  body.light-mode{
-    --bg:#F0F4FF;--surface:#FFFFFF;--surface2:#E8EEF8;
-    --text:#0A0F1E;--text2:#4A5568;
-  }
-  body.light-mode .wallet-card{background:linear-gradient(135deg,#0D2137,#0A3D52);}
-  body.light-mode .wallet-card .wallet-label,
-  body.light-mode .wallet-card .wallet-balance,
-  body.light-mode .wallet-card .wallet-btn{color:#F0F4FF;}
-  body.light-mode .auth-screen{background:var(--bg);}
-  body.light-mode #onboardingScreen{background:var(--bg);}
-  body.light-mode{
-    --bg:#F0F4FF;--surface:#FFFFFF;--surface2:#E8EDF8;
-    --text:#0A0F1E;--text2:#4A5568;
-  }
-  body.light-mode .wallet-card{background:linear-gradient(135deg,#00BFA5,#00897B);}
-  body.light-mode .wallet-card .wallet-label,
-  body.light-mode .wallet-card .wallet-balance,
-  body.light-mode .wallet-balance span,
-  body.light-mode .wallet-btn{color:#fff;}
-  body.light-mode .bottom-nav{box-shadow:0 -2px 12px rgba(0,0,0,.08);}
-  body.light-mode .net-pill{border-color:#E8EDF8;}
-  body.light-mode .plan-card{border-color:#E8EDF8;}
-  body.light-mode .input-stack{border-color:#E8EDF8;}
-  body.light-mode .form-group input{border-color:#E8EDF8;color:#0A0F1E;}
-  body.light-mode .tx-item{border-color:#E8EDF8;}
-  body.light-mode #onboardingScreen{background:#F0F4FF;}
-  body.light-mode .ob-title{color:#0A0F1E;}
-  body.light-mode .ob-dot{background:#E8EDF8;}
-  body.light-mode .btn-outline{border-color:#E8EDF8;color:#4A5568;}
-  body.light-mode .auth-logo h1{color:#0A0F1E;}
-  body.light-mode .modal-sheet{background:#FFFFFF;}
-  body.light-mode .bank-details{background:#F0F4FF;}
-  body.light-mode .menu-item{background:#FFFFFF;}
-  body.light-mode .menu-icon{background:#F0F4FF;}
-  body.light-mode .profile-header{background:#F0F4FF;}
-  html,body{background:#0A0F1E;color:#F0F4FF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
-body{background:var(--bg);color:var(--text);}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{background:#0A0F1E;min-height:100vh;}
+:root{
+  --bg:#0A0F1E;--surface:#111827;--surface2:#1A2235;
+  --accent:#00E676;--accent2:#00BFA5;--text:#F0F4FF;
+  --text2:#8B9BBE;--danger:#FF5370;
+  --radius:16px;--radius-sm:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden;}
+body.light{--bg:#F0F4FF;--surface:#fff;--surface2:#E8EEF8;--text:#0A0F1E;--text2:#4A5568;}
 
-  /* LOADER */
-  #appLoader{position:fixed;inset:0;background:#0A0F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
-  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
-  #appLoader h1{font-size:28px;font-weight:800;}#appLoader h1 span{color:var(--accent);}
-  #appLoader p{color:var(--text2);font-size:14px;margin-top:8px;}
+/* LOADER */
+#loader{position:fixed;inset:0;background:#0A0F1E;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#loader img{width:80px;height:80px;border-radius:22px;animation:pulse 1.5s infinite;}
+#loader p{color:#8B9BBE;font-size:14px;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
 
-  .screen{display:none;min-height:100vh;padding-bottom:80px;animation:fadeIn .25s ease;}
-  .screen.active{display:block;}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-  .auth-screen{display:none;min-height:100vh;flex-direction:column;justify-content:center;padding:32px 24px;}
-  .auth-screen.active{display:flex;}
+/* SCREENS */
+.screen{display:none;min-height:100vh;padding-bottom:80px;animation:fadeIn .25s ease;}
+.screen.active{display:block;}
+.auth{display:none;min-height:100vh;flex-direction:column;justify-content:center;padding:32px 24px;background:var(--bg);}
+.auth.active{display:flex;animation:fadeIn .25s ease;}
 
-  .auth-logo{text-align:center;margin-bottom:40px;}
-  .auth-logo .logo-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;}
-  .auth-logo h1{font-size:28px;font-weight:800;letter-spacing:-.5px;}
-  .auth-logo h1 span{color:var(--accent);}
-  .auth-logo p{color:var(--text2);font-size:14px;margin-top:4px;}
-  .auth-title{font-size:22px;font-weight:700;margin-bottom:6px;}
-  .auth-sub{color:var(--text2);font-size:14px;margin-bottom:32px;}
-  .form-group{margin-bottom:18px;}
-  .form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:500;}
-  .form-group input{width:100%;background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:14px 16px;color:var(--text);font-size:15px;outline:none;transition:border .2s;}
-  .form-group input:focus{border-color:var(--accent);}
-  .form-group input::placeholder{color:var(--text2);}
-  .btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0A0F1E;border:none;border-radius:var(--radius-sm);padding:15px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;}
-  .btn-primary:active{opacity:.85;transform:scale(.98);}
-  .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
-  .auth-switch{text-align:center;margin-top:20px;font-size:14px;color:var(--text2);}
-  .auth-switch span{color:var(--accent);cursor:pointer;font-weight:600;}
+/* ONBOARDING */
+#ob{position:fixed;inset:0;background:var(--bg);z-index:998;display:none;flex-direction:column;}
+#ob.active{display:flex;}
+.ob-slides{flex:1;position:relative;overflow:hidden;}
+.ob-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;opacity:0;transform:translateX(100%);transition:all .4s ease;}
+.ob-slide.active{opacity:1;transform:translateX(0);}
+.ob-slide.prev{opacity:0;transform:translateX(-100%);}
+.ob-emoji{font-size:72px;margin-bottom:24px;}
+.ob-title{font-size:26px;font-weight:800;text-align:center;margin-bottom:12px;line-height:1.3;}
+.ob-title span{color:var(--accent);}
+.ob-desc{font-size:15px;color:var(--text2);text-align:center;line-height:1.6;}
+.ob-dots{display:flex;gap:8px;justify-content:center;padding:20px 0;}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:var(--surface2);transition:all .3s;}
+.ob-dot.active{width:24px;border-radius:4px;background:var(--accent);}
+.ob-actions{padding:0 24px 48px;display:flex;flex-direction:column;gap:12px;}
 
-  .topbar{padding:20px 20px 12px;display:flex;align-items:center;justify-content:space-between;}
-  .topbar-left h2{font-size:18px;font-weight:700;}
-  .topbar-left p{font-size:13px;color:var(--text2);}
-  .topbar-right{width:40px;height:40px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
-  .page-header{padding:16px 20px 8px;display:flex;align-items:center;gap:12px;}
-  .back-btn{width:38px;height:38px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;}
-  .page-header h2{font-size:18px;font-weight:700;}
+/* AUTH */
+.auth-logo{text-align:center;margin-bottom:32px;}
+.auth-logo img{width:60px;height:60px;border-radius:18px;margin-bottom:12px;}
+.auth-logo .brand{width:160px;}
+.auth-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+.auth-sub{color:var(--text2);font-size:14px;margin-bottom:28px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:500;}
+.pass-wrap{position:relative;}
+.pass-wrap input{padding-right:48px!important;}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;padding:4px;}
+input,select{width:100%;background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:13px 16px;color:var(--text);font-size:15px;outline:none;transition:border .2s;font-family:inherit;}
+input:focus,select:focus{border-color:var(--accent);}
+input::placeholder{color:var(--text2);}
+select option{background:var(--surface);}
+.err{color:var(--danger);font-size:13px;margin-top:-8px;margin-bottom:12px;}
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--surface2);}
+.divider span{font-size:13px;color:var(--text2);}
+.auth-switch{text-align:center;margin-top:16px;font-size:14px;color:var(--text2);}
+.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600;}
 
-  .wallet-card{margin:0 20px 20px;background:linear-gradient(135deg,#0D2137,#0A3D52);border:1px solid rgba(0,230,118,.15);border-radius:20px;padding:22px;position:relative;overflow:hidden;}
-  .wallet-card::before{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(0,230,118,.12),transparent 70%);}
-  .wallet-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
-  .wallet-balance{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:16px;}
-  .wallet-balance span{color:var(--accent);}
-  .wallet-actions{display:flex;gap:10px;}
-  .wallet-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s;}
-  .wallet-btn:active{background:rgba(0,230,118,.15);}
-  .wallet-btn .wbtn-icon{font-size:18px;display:block;margin-bottom:4px;}
+/* BUTTONS */
+.btn{width:100%;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn:active{opacity:.85;transform:scale(.98);}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0A0F1E;}
+.btn-google{background:var(--surface);border:1.5px solid var(--surface2);color:var(--text);}
+.btn-apple{background:#000;color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--surface2);color:var(--text2);}
 
-  .section-title{padding:0 20px 12px;font-size:15px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
-  .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 20px 24px;}
-  .qa-item{background:var(--surface);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;transition:transform .15s,background .2s;border:1px solid transparent;}
-  .qa-item:active{transform:scale(.94);background:var(--surface2);border-color:var(--accent);}
-  .qa-icon{font-size:24px;margin-bottom:8px;display:block;}
-  .qa-label{font-size:11px;color:var(--text2);font-weight:600;}
+/* TOP BAR */
+.topbar{padding:20px 20px 12px;display:flex;align-items:center;justify-content:space-between;}
+.topbar h2{font-size:18px;font-weight:700;}
+.topbar p{font-size:13px;color:var(--text2);}
+.topbar-right{width:40px;height:40px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.page-header{padding:16px 20px 8px;display:flex;align-items:center;gap:12px;}
+.back-btn{width:38px;height:38px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;}
+.page-header h2{font-size:18px;font-weight:700;}
 
-  .network-pills{display:flex;gap:10px;padding:0 20px 20px;overflow-x:auto;scrollbar-width:none;}
-  .network-pills::-webkit-scrollbar{display:none;}
-  .net-pill{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--surface2);border-radius:50px;padding:10px 16px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;}
-  .net-pill .net-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-  .net-pill.active{border-color:var(--accent);background:rgba(0,230,118,.08);color:var(--accent);}
-  .net-pill[data-net="MTN"] .net-dot{background:var(--mtn);}
-  .net-pill[data-net="Airtel"] .net-dot{background:var(--airtel);}
-  .net-pill[data-net="Glo"] .net-dot{background:var(--glo);}
-  .net-pill[data-net="9mobile"] .net-dot{background:var(--mobile);}
+/* WALLET CARD */
+.wallet-card{margin:0 20px 20px;background:linear-gradient(135deg,#0D2137,#0A3D52);border:1px solid rgba(0,230,118,.15);border-radius:20px;padding:22px;position:relative;overflow:hidden;}
+.wallet-card::before{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(0,230,118,.12),transparent 70%);}
+.wallet-label{font-size:12px;color:rgba(240,244,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.wallet-balance{font-size:32px;font-weight:800;color:#F0F4FF;margin-bottom:16px;}
+.wallet-balance span{color:var(--accent);}
+.wallet-actions{display:flex;gap:10px;}
+.wallet-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:#F0F4FF;}
+.wallet-btn .wi{font-size:18px;display:block;margin-bottom:4px;}
 
-  .content{padding:0 20px;}
-  .input-stack{background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:14px;transition:border .2s;}
-  .input-stack:focus-within{border-color:var(--accent);}
-  .input-stack label{font-size:12px;color:var(--text2);margin-bottom:4px;display:block;}
-  .input-stack input,.input-stack select{background:transparent;border:none;outline:none;color:var(--text);font-size:15px;width:100%;font-family:inherit;}
-  .input-stack select option{background:var(--surface);}
+/* SECTIONS */
+.section-title{padding:0 20px 12px;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 20px 24px;}
+.qa{background:var(--surface);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;border:1px solid transparent;transition:all .15s;}
+.qa:active{background:var(--surface2);border-color:var(--accent);transform:scale(.94);}
+.qa-icon{font-size:24px;margin-bottom:8px;display:block;}
+.qa-label{font-size:11px;color:var(--text2);font-weight:600;}
 
-  .plans-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
-  .plan-card{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .2s;}
-  .plan-card.selected{border-color:var(--accent);background:rgba(0,230,118,.06);}
-  .plan-size{font-size:18px;font-weight:800;color:var(--accent);}
-  .plan-validity{font-size:12px;color:var(--text2);margin:2px 0 8px;}
-  .plan-price{font-size:15px;font-weight:700;}
+/* NETWORK PILLS */
+.net-pills{display:flex;gap:10px;padding:0 20px 20px;overflow-x:auto;scrollbar-width:none;}
+.net-pills::-webkit-scrollbar{display:none;}
+.net-pill{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--surface2);border-radius:50px;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;}
+.net-pill.active{border-color:var(--accent);background:rgba(0,230,118,.08);color:var(--accent);}
+.net-dot{width:10px;height:10px;border-radius:50%;}
 
-  .tx-list{padding:0 20px;}
-  .tx-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--surface2);}
-  .tx-item:last-child{border-bottom:none;}
-  .tx-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-  .tx-icon.data{background:rgba(0,230,118,.1);}
-  .tx-icon.airtime{background:rgba(255,152,0,.1);}
-  .tx-icon.fund{background:rgba(33,150,243,.1);}
-  .tx-info{flex:1;}
-  .tx-name{font-size:14px;font-weight:600;}
-  .tx-date{font-size:12px;color:var(--text2);margin-top:2px;}
-  .tx-amount{font-size:15px;font-weight:700;}
-  .tx-amount.debit{color:var(--danger);}
-  .tx-amount.credit{color:var(--accent);}
+/* CONTENT */
+.content{padding:0 20px;}
+.input-stack{background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:14px;transition:border .2s;}
+.input-stack:focus-within{border-color:var(--accent);}
+.input-stack label{font-size:12px;color:var(--text2);margin-bottom:4px;display:block;}
+.input-stack input,.input-stack select{background:transparent;border:none;padding:0;border-radius:0;}
+.net-badge{display:none;margin:-8px 0 14px;padding:8px 12px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);border-radius:8px;font-size:13px;color:var(--accent);font-weight:600;}
+.info-box{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.5;}
+.info-box strong{color:var(--accent);}
+.info-box.warn{background:rgba(255,83,112,.06);border-color:rgba(255,83,112,.3);}
+.info-box.warn strong{color:var(--danger);}
 
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;}
-  .modal-overlay.show{display:flex;animation:fadeIn .2s ease;}
-  .modal-sheet{background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;}
-  .modal-handle{width:40px;height:4px;background:var(--surface2);border-radius:2px;margin:0 auto 20px;}
-  .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;}
-  .bank-details{background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
-  .bank-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  .bank-row:last-child{margin-bottom:0;}
-  .bank-label{font-size:13px;color:var(--text2);}
-  .bank-value{font-size:14px;font-weight:700;}
-  .copy-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;}
+/* PLANS GRID */
+.plans-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+.plan-card{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .2s;}
+.plan-card.selected{border-color:var(--accent);background:rgba(0,230,118,.06);}
+.plan-size{font-size:16px;font-weight:800;color:var(--accent);}
+.plan-val{font-size:11px;color:var(--text2);margin:2px 0 6px;}
+.plan-price{font-size:14px;font-weight:700;}
 
-  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:12px 20px;border-radius:50px;font-size:14px;font-weight:500;z-index:200;display:none;white-space:nowrap;border:1px solid var(--accent);box-shadow:0 4px 20px rgba(0,0,0,.4);}
-  .toast.show{display:block;animation:toastIn .3s ease;}
-  @keyframes toastIn{from{opacity:0;bottom:80px;}to{opacity:1;bottom:100px;}}
+/* QUICK AMOUNTS */
+.quick-amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;}
+.amt-btn{background:var(--surface);border:1.5px solid var(--surface2);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);transition:all .15s;}
+.amt-btn:active{border-color:var(--accent);color:var(--accent);}
 
-  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--surface2);display:flex;padding:10px 0 16px;z-index:50;}
-  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px;}
-  .nav-icon{font-size:20px;}
-  .nav-label{font-size:10px;color:var(--text2);font-weight:600;}
-  .nav-item.active .nav-label{color:var(--accent);}
-  .nav-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;display:none;}
-  .nav-item.active .nav-dot{display:block;}
+/* TRANSACTIONS */
+.tx-list{padding:0 20px;}
+.tx-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--surface2);}
+.tx-item:last-child{border-bottom:none;}
+.tx-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.tx-icon.data{background:rgba(0,230,118,.1);}
+.tx-icon.airtime{background:rgba(255,152,0,.1);}
+.tx-icon.fund{background:rgba(33,150,243,.1);}
+.tx-info{flex:1;}
+.tx-name{font-size:14px;font-weight:600;}
+.tx-date{font-size:12px;color:var(--text2);margin-top:2px;}
+.tx-amt{font-size:15px;font-weight:700;}
+.tx-amt.debit{color:var(--danger);}
+.tx-amt.credit{color:var(--accent);}
+.empty{text-align:center;padding:48px 24px;}
+.empty-icon{font-size:48px;margin-bottom:16px;}
+.empty p{color:var(--text2);font-size:14px;}
 
-  .success-screen{text-align:center;padding:60px 24px;}
-  .success-icon{font-size:64px;margin-bottom:20px;animation:pop .4s cubic-bezier(.175,.885,.32,1.275);}
-  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
-  .success-title{font-size:22px;font-weight:800;margin-bottom:8px;}
-  .success-msg{color:var(--text2);font-size:14px;margin-bottom:32px;line-height:1.6;}
-  .success-card{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:24px;text-align:left;}
-  .success-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--surface2);font-size:14px;}
-  .success-row:last-child{border-bottom:none;}
-  .success-row span:first-child{color:var(--text2);}
-  .success-row span:last-child{font-weight:600;}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;}
+.modal-bg.show{display:flex;animation:fadeIn .2s ease;}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:var(--surface2);border-radius:2px;margin:0 auto 20px;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;}
+.bank-box{background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;}
+.bank-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;}
+.bank-row:last-child{margin-bottom:0;}
+.bank-label{color:var(--text2);}
+.bank-val{font-weight:700;}
+.copy-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;}
 
-  .profile-header{text-align:center;padding:30px 20px 20px;}
-  .profile-avatar{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#0A0F1E;margin-bottom:12px;}
-  .profile-name{font-size:20px;font-weight:700;}
-  .profile-phone{font-size:14px;color:var(--text2);margin-top:4px;}
-  .profile-menu{padding:0 20px;}
-  .menu-item{display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:10px;cursor:pointer;}
-  .menu-icon{width:38px;height:38px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-  .menu-text{flex:1;}
-  .menu-text p{font-size:14px;font-weight:600;}
-  .menu-text span{font-size:12px;color:var(--text2);}
-  .menu-arrow{color:var(--text2);}
-  .logout-btn{width:calc(100% - 40px);margin:16px 20px;background:rgba(255,83,112,.1);border:1.5px solid var(--danger);color:var(--danger);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;}
+/* PROCESSING OVERLAY */
+#processing{display:none;position:fixed;inset:0;background:rgba(10,15,30,.8);z-index:500;align-items:center;justify-content:center;}
+#processing.show{display:flex;}
+.proc-card{background:var(--surface);border-radius:20px;padding:32px 40px;text-align:center;}
+.spinner{width:52px;height:52px;border:4px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+.proc-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.proc-sub{font-size:13px;color:var(--text2);}
 
-  .info-box{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.5;}
-  .info-box strong{color:var(--accent);}
-  .empty-state{text-align:center;padding:48px 24px;}
-  .empty-state .empty-icon{font-size:48px;margin-bottom:16px;}
-  .empty-state p{color:var(--text2);font-size:14px;}
-  .error-msg{color:var(--danger);font-size:13px;margin-top:-10px;margin-bottom:12px;padding-left:4px;}
+/* SUCCESS */
+.success-wrap{text-align:center;padding:60px 24px;}
+.success-icon{font-size:64px;margin-bottom:20px;animation:pop .4s cubic-bezier(.175,.885,.32,1.275);}
+.success-title{font-size:22px;font-weight:800;margin-bottom:8px;}
+.success-msg{color:var(--text2);font-size:14px;margin-bottom:28px;line-height:1.6;}
+.success-card{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:24px;text-align:left;}
+.success-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--surface2);font-size:14px;}
+.success-row:last-child{border-bottom:none;}
+.success-row span:first-child{color:var(--text2);}
+.success-row span:last-child{font-weight:600;}
 
-  /* ONBOARDING */
-  #onboardingScreen{position:fixed;inset:0;background:var(--bg);z-index:998;display:none;flex-direction:column;}
-  #onboardingScreen.active{display:flex;}
-  .ob-slides{flex:1;overflow:hidden;position:relative;}
-  .ob-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;opacity:0;transform:translateX(100%);transition:all .4s cubic-bezier(.4,0,.2,1);}
-  .ob-slide.active{opacity:1;transform:translateX(0);}
-  .ob-slide.prev{opacity:0;transform:translateX(-100%);}
-  .ob-emoji{font-size:80px;margin-bottom:28px;animation:floatUp .6s ease;}
-  @keyframes floatUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-  .ob-title{font-size:26px;font-weight:800;text-align:center;margin-bottom:14px;line-height:1.2;}
-  .ob-title span{color:var(--accent);}
-  .ob-desc{font-size:15px;color:var(--text2);text-align:center;line-height:1.6;}
-  .ob-dots{display:flex;gap:8px;justify-content:center;padding:24px 0 8px;}
-  .ob-dot{width:8px;height:8px;border-radius:50%;background:var(--surface2);transition:all .3s;}
-  .ob-dot.active{width:24px;border-radius:4px;background:var(--accent);}
-  .ob-actions{padding:0 24px 48px;display:flex;flex-direction:column;gap:12px;}
-  .btn-outline{width:100%;background:transparent;border:1.5px solid var(--surface2);color:var(--text2);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;}
-  .pass-wrap{position:relative;}
-  .pass-wrap input{padding-right:48px !important;}
-  .eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--text2);padding:4px;}
-  
-  /* SOCIAL LOGIN BUTTONS */
-  .divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
-  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--surface2);}
-  .divider span{font-size:13px;color:var(--text2);white-space:nowrap;}
-  .btn-google{width:100%;background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;gap:10px;transition:background .2s,border .2s;margin-bottom:10px;}
-  .btn-google:active{background:var(--surface2);}
-  .btn-google:hover{border-color:var(--accent);}
-  .btn-apple{width:100%;background:#000;border:1.5px solid #000;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s;margin-bottom:10px;}
-  .btn-apple:active{opacity:.85;}
-  body.light-mode .btn-apple{background:#000;color:#fff;}
+/* PROFILE */
+.profile-head{text-align:center;padding:30px 20px 20px;}
+.profile-avatar{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#0A0F1E;margin-bottom:12px;}
+.profile-name{font-size:20px;font-weight:700;}
+.profile-email{font-size:14px;color:var(--text2);margin-top:4px;}
+.profile-menu{padding:0 20px;}
+.menu-item{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:10px;cursor:pointer;}
+.menu-icon{width:38px;height:38px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.menu-text{flex:1;}
+.menu-text p{font-size:14px;font-weight:600;}
+.menu-text span{font-size:12px;color:var(--text2);}
+.logout-btn{width:calc(100% - 40px);margin:16px 20px;background:rgba(255,83,112,.1);border:1.5px solid var(--danger);color:var(--danger);border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;display:block;}
 
-  /* LOADING SPINNER */
-  .btn-primary.loading{opacity:.8;cursor:not-allowed;position:relative;}
-  .btn-primary.loading::after{
-    content:'';
-    position:absolute;
-    width:18px;height:18px;
-    border:2.5px solid rgba(10,15,30,.3);
-    border-top-color:#0A0F1E;
-    border-radius:50%;
-    right:16px;top:50%;
-    margin-top:-9px;
-    animation:spin .7s linear infinite;
-  }
-  @keyframes spin{to{transform:rotate(360deg);}}
-  
-  /* PROCESSING OVERLAY */
-  #processingOverlay{
-    display:none;position:fixed;inset:0;
-    background:rgba(10,15,30,.7);
-    z-index:500;align-items:center;justify-content:center;
-    flex-direction:column;gap:16px;
-  }
-  #processingOverlay.show{display:flex;}
-  .processing-card{
-    background:var(--surface);border-radius:20px;
-    padding:32px 40px;text-align:center;
-    border:1px solid var(--surface2);
-  }
-  .spinner-big{
-    width:56px;height:56px;
-    border:4px solid var(--surface2);
-    border-top-color:var(--accent);
-    border-radius:50%;
-    animation:spin .8s linear infinite;
-    margin:0 auto 16px;
-  }
-  .processing-title{font-size:16px;font-weight:700;margin-bottom:6px;}
-  .processing-sub{font-size:13px;color:var(--text2);}
+/* BOTTOM NAV */
+#nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--surface2);display:none;padding:10px 0 16px;z-index:50;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px;}
+#nav{display:none;flex-direction:row;}
+#nav.show{display:flex;}
+.nav-icon{font-size:20px;}
+.nav-label{font-size:10px;color:var(--text2);font-weight:600;}
+.nav-item.active .nav-label{color:var(--accent);}
+.nav-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;display:none;}
+.nav-item.active .nav-dot{display:block;}
+
+/* TOAST */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:12px 20px;border-radius:50px;font-size:14px;font-weight:500;z-index:300;display:none;white-space:nowrap;border:1px solid var(--accent);box-shadow:0 4px 20px rgba(0,0,0,.4);}
+#toast.show{display:block;animation:fadeIn .3s ease;}
+
+/* INSTALL BANNER */
+#installBanner{display:none;position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:14px;z-index:200;flex-direction:row;align-items:center;gap:10px;}
+#installBanner.show{display:flex;}
 </style>
 </head>
 <body>
 
-<script>
-window._showOnboarding = !localStorage.getItem('qt_onboarded');
-document.documentElement.style.background = '#0A0F1E';
+<!-- LOADER -->
+<div id="loader">
+  <img src="icon-192.png" alt="QuickTop" onerror="this.style.display='none'"/>
+  <p>Loading...</p>
+</div>
 
-// Detect offline immediately
-if(!navigator.onLine){
-  document.addEventListener('DOMContentLoaded', () => {
-    const loader = document.getElementById('appLoader');
-    if(loader){
-      loader.innerHTML = `
-        <div style="text-align:center;padding:24px;">
-          <div style="font-size:48px;margin-bottom:16px;">📡</div>
-          <div style="font-size:20px;font-weight:800;color:#F0F4FF;margin-bottom:8px;">No Internet</div>
-          <div style="font-size:14px;color:#8B9BBE;margin-bottom:24px;">Please check your connection<br>and try again</div>
-          <button onclick="location.reload()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Retry</button>
-        </div>`;
-    }
-  });
-}
-
-// Listen for connection changes
-window.addEventListener('online', () => location.reload());
-window.addEventListener('offline', () => {
-  const loader = document.getElementById('appLoader');
-  if(loader){
-    loader.style.display = 'flex';
-    loader.innerHTML = `
-      <div style="text-align:center;padding:24px;">
-        <div style="font-size:48px;margin-bottom:16px;">📡</div>
-        <div style="font-size:20px;font-weight:800;color:#F0F4FF;margin-bottom:8px;">No Internet</div>
-        <div style="font-size:14px;color:#8B9BBE;margin-bottom:24px;">Please check your connection<br>and try again</div>
-        <button onclick="location.reload()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Retry</button>
-      </div>`;
-  }
-});
-</script>
+<!-- OFFLINE MESSAGE -->
+<div id="offlineMsg" style="display:none;position:fixed;inset:0;background:#0A0F1E;z-index:1000;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
+  <div style="font-size:48px;margin-bottom:16px;">📡</div>
+  <div style="font-size:20px;font-weight:800;color:#F0F4FF;margin-bottom:8px;">No Internet</div>
+  <div style="font-size:14px;color:#8B9BBE;margin-bottom:24px;">Please check your connection and try again</div>
+  <button onclick="location.reload()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Retry</button>
+</div>
 
 <!-- ONBOARDING -->
-<div id="onboardingScreen">
+<div id="ob">
   <div class="ob-slides">
-    <div class="ob-slide active" id="ob0">
-      <div style="width:90px;height:90px;background:linear-gradient(135deg,#00E676,#00BFA5);border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;"><svg width="48" height="48" viewBox="0 0 40 40"><polygon points="20,4 11,22 17,22 14,36 29,18 23,18 26,4" fill="#0A0F1E"/></svg></div>
-      <div class="ob-title">Buy Airtime and Data<br><span>in Seconds</span></div>
+    <div class="ob-slide active" id="obs0">
+      <div class="ob-emoji"><img src="icon-192.png" style="width:80px;height:80px;border-radius:20px;" onerror="this.outerHTML='⚡'"/></div>
+      <div class="ob-title">Buy Airtime & Data<br><span>in Seconds</span></div>
       <div class="ob-desc">Recharge all Nigerian networks instantly. MTN, Airtel, Glo, 9mobile — always available.</div>
     </div>
-    <div class="ob-slide" id="ob1">
+    <div class="ob-slide" id="obs1">
       <div class="ob-emoji">🧾</div>
       <div class="ob-title">Pay Bills<br><span>Without Stress</span></div>
       <div class="ob-desc">Electricity, cable TV, internet subscriptions and more — all in one place.</div>
     </div>
-    <div class="ob-slide" id="ob2">
+    <div class="ob-slide" id="obs2">
       <div class="ob-emoji">🔐</div>
       <div class="ob-title">Fund Your Wallet<span> Securely</span></div>
       <div class="ob-desc">Bank transfer, cards, or virtual account funding. Fast, safe and reliable.</div>
     </div>
-    <div class="ob-slide" id="ob3">
+    <div class="ob-slide" id="obs3">
       <div class="ob-emoji">🎁</div>
       <div class="ob-title">Earn While<br><span>You Spend</span></div>
       <div class="ob-desc">Referral commissions and cashback rewards. Share QuickTop and earn every time.</div>
     </div>
   </div>
   <div class="ob-dots">
-    <div class="ob-dot active" id="dot0"></div>
-    <div class="ob-dot" id="dot1"></div>
-    <div class="ob-dot" id="dot2"></div>
-    <div class="ob-dot" id="dot3"></div>
+    <div class="ob-dot active" id="od0"></div>
+    <div class="ob-dot" id="od1"></div>
+    <div class="ob-dot" id="od2"></div>
+    <div class="ob-dot" id="od3"></div>
   </div>
   <div class="ob-actions">
-    <button class="btn-primary" id="obNextBtn" onclick="obNext()">Next</button>
-    <button class="btn-outline" onclick="obSkip()">Skip</button>
+    <button class="btn btn-primary" id="obBtn" onclick="obNext()">Next</button>
+    <button class="btn btn-outline" onclick="obSkip()">Skip</button>
   </div>
 </div>
 
-<!-- LOADER -->
-<div id="appLoader" style="background:#0A0F1E;">
-  <img src="icon-192.png" style="width:80px;height:80px;border-radius:24px;margin-bottom:20px;animation:pulse 1.5s infinite;"/>
-  <p style="color:#8B9BBE;font-size:13px;">Loading...</p>
+<!-- LOGIN -->
+<div class="auth" id="loginScreen">
+  <div class="auth-logo">
+    <img src="icon-192.png" class="mb-3" onerror="this.style.display='none'" style="width:60px;height:60px;border-radius:18px;margin-bottom:12px;"/>
+    <br/>
+    <img src="logo-brand.png" class="brand" onerror="this.style.display='none'" style="width:160px;"/>
+  </div>
+  <h2 class="auth-title">Welcome back</h2>
+  <p class="auth-sub">Sign in to continue</p>
+  <div class="form-group">
+    <label>Email Address</label>
+    <input type="email" id="loginEmail" placeholder="you@example.com"/>
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <div class="pass-wrap">
+      <input type="password" id="loginPass" placeholder="Enter password"/>
+      <button class="eye-btn" onclick="toggleEye('loginPass',this)" tabindex="-1">👁️</button>
+    </div>
+  </div>
+  <div class="err" id="loginErr"></div>
+  <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Sign In</button>
+  <div class="divider"><span>or continue with</span></div>
+  <button class="btn btn-google" onclick="googleSignIn()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+  <button class="btn btn-apple" onclick="toast('Apple Sign-In coming soon!')">🍎 Continue with Apple</button>
+  <div class="auth-switch">No account? <span onclick="showAuth('signupScreen')">Create one</span></div>
 </div>
 
-<!-- ONBOARDING + EYE JS -->
-<script>
-// ===== ONBOARDING =====
-let obCurrent = 0;
-const obTotal = 4;
+<!-- SIGNUP -->
+<div class="auth" id="signupScreen">
+  <div class="auth-logo">
+    <img src="icon-192.png" onerror="this.style.display='none'" style="width:60px;height:60px;border-radius:18px;margin-bottom:12px;"/>
+    <br/>
+    <img src="logo-brand.png" onerror="this.style.display='none'" style="width:160px;"/>
+  </div>
+  <h2 class="auth-title">Create account</h2>
+  <p class="auth-sub">Join thousands saving on data</p>
+  <div class="form-group"><label>Full Name</label><input type="text" id="sigName" placeholder="e.g. Ayodeji Salami"/></div>
+  <div class="form-group"><label>Phone Number</label><input type="tel" id="sigPhone" placeholder="080XXXXXXXX" maxlength="11"/></div>
+  <div class="form-group"><label>Email Address</label><input type="email" id="sigEmail" placeholder="you@example.com"/></div>
+  <div class="form-group"><label>Password</label>
+    <div class="pass-wrap"><input type="password" id="sigPass" placeholder="Min 6 characters"/><button class="eye-btn" onclick="toggleEye('sigPass',this)" tabindex="-1">👁️</button></div>
+  </div>
+  <div class="form-group"><label>Confirm Password</label>
+    <div class="pass-wrap"><input type="password" id="sigConfirm" placeholder="Re-enter password"/><button class="eye-btn" onclick="toggleEye('sigConfirm',this)" tabindex="-1">👁️</button></div>
+  </div>
+  <div class="err" id="sigErr"></div>
+  <button class="btn btn-primary" id="sigBtn" onclick="doSignup()">Create Account</button>
+  <div class="divider"><span>or sign up with</span></div>
+  <button class="btn btn-google" onclick="googleSignIn()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+  <div class="auth-switch">Have account? <span onclick="showAuth('loginScreen')">Sign in</span></div>
+</div>
 
-function obNext(){
-  if(obCurrent < obTotal - 1){
-    document.getElementById('ob'+obCurrent).classList.remove('active');
-    document.getElementById('ob'+obCurrent).classList.add('prev');
-    document.getElementById('dot'+obCurrent).classList.remove('active');
-    obCurrent++;
-    document.getElementById('ob'+obCurrent).classList.add('active');
-    document.getElementById('dot'+obCurrent).classList.add('active');
-    if(obCurrent === obTotal - 1){
-      document.getElementById('obNextBtn').textContent = 'Get Started';
-    }
-  } else {
-    obSkip(); // calls login screen
-  }
-}
+<!-- HOME -->
+<div class="screen" id="homeScreen">
+  <div class="topbar">
+    <div><p style="color:var(--text2);font-size:13px;">Good day 👋</p><h2 id="homeName">User</h2></div>
+    <div class="topbar-right" onclick="goTo('profileScreen')">👤</div>
+  </div>
+  <div class="wallet-card">
+    <div class="wallet-label">Wallet Balance</div>
+    <div class="wallet-balance">₦<span id="walletBal">0.00</span></div>
+    <div class="wallet-actions">
+      <div class="wallet-btn" onclick="showFund()"><span class="wi">➕</span>Fund</div>
+      <div class="wallet-btn" onclick="goTo('historyScreen')"><span class="wi">📋</span>History</div>
+    </div>
+  </div>
+  <div class="section-title">Quick Actions</div>
+  <div class="quick-actions">
+    <div class="qa" onclick="goTo('dataScreen')"><span class="qa-icon">📶</span><div class="qa-label">Data</div></div>
+    <div class="qa" onclick="goTo('airtimeScreen')"><span class="qa-icon">📞</span><div class="qa-label">Airtime</div></div>
+    <div class="qa" onclick="toast('Coming soon!')"><span class="qa-icon">📺</span><div class="qa-label">Cable TV</div></div>
+    <div class="qa" onclick="toast('Coming soon!')"><span class="qa-icon">💡</span><div class="qa-label">Electricity</div></div>
+  </div>
+  <div class="section-title">Recent Transactions</div>
+  <div class="tx-list" id="homeTx"></div>
+</div>
 
-function obSkip(){
-  localStorage.setItem('qt_onboarded','1');
-  window._showOnboarding = false;
-  document.getElementById('onboardingScreen').classList.remove('active');
-  // Show login screen after onboarding
-  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('loginScreen').classList.add('active');
-}
+<!-- DATA -->
+<div class="screen" id="dataScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Buy Data</h2></div>
+  <div class="section-title">Select Network</div>
+  <div class="net-pills">
+    <div class="net-pill active" data-net="MTN" onclick="pickNet(this,'data')"><div class="net-dot" style="background:#FFD700;"></div>MTN</div>
+    <div class="net-pill" data-net="Airtel" onclick="pickNet(this,'data')"><div class="net-dot" style="background:#E53935;"></div>Airtel</div>
+    <div class="net-pill" data-net="Glo" onclick="pickNet(this,'data')"><div class="net-dot" style="background:#4CAF50;"></div>Glo</div>
+    <div class="net-pill" data-net="9mobile" onclick="pickNet(this,'data')"><div class="net-dot" style="background:#0056A2;"></div>9mobile</div>
+  </div>
+  <div class="content">
+    <div class="info-box">💡 <strong>Save up to 40%</strong> on data. Instant delivery guaranteed.</div>
+    <div class="input-stack">
+      <label>Phone Number</label>
+      <input type="tel" id="dataPhone" placeholder="080XXXXXXXX" maxlength="11" oninput="autoNet(this.value,'data')"/>
+    </div>
+    <div class="net-badge" id="dataBadge"></div>
+    <div class="section-title" style="padding:0 0 12px;">Choose Plan</div>
+    <div class="plans-grid" id="plansGrid"></div>
+    <button class="btn btn-primary" id="dataBuyBtn" onclick="buyData()">Buy Data</button>
+  </div>
+</div>
 
-function checkOnboarding(){
-  // Show onboarding only for first-time visitors
-  if(!localStorage.getItem('qt_onboarded')){
-    document.getElementById('onboardingScreen').classList.add('active');
-  }
-  // Always show login — never auto-login to dashboard
-}
+<!-- AIRTIME -->
+<div class="screen" id="airtimeScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Buy Airtime</h2></div>
+  <div class="section-title">Select Network</div>
+  <div class="net-pills">
+    <div class="net-pill active" data-net="MTN" onclick="pickNet(this,'airtime')"><div class="net-dot" style="background:#FFD700;"></div>MTN</div>
+    <div class="net-pill" data-net="Airtel" onclick="pickNet(this,'airtime')"><div class="net-dot" style="background:#E53935;"></div>Airtel</div>
+    <div class="net-pill" data-net="Glo" onclick="pickNet(this,'airtime')"><div class="net-dot" style="background:#4CAF50;"></div>Glo</div>
+    <div class="net-pill" data-net="9mobile" onclick="pickNet(this,'airtime')"><div class="net-dot" style="background:#0056A2;"></div>9mobile</div>
+  </div>
+  <div class="content">
+    <div class="input-stack">
+      <label>Phone Number</label>
+      <input type="tel" id="airtimePhone" placeholder="080XXXXXXXX" maxlength="11" oninput="autoNet(this.value,'airtime')"/>
+    </div>
+    <div class="net-badge" id="airtimeBadge"></div>
+    <div class="input-stack">
+      <label>Amount (₦)</label>
+      <input type="number" id="airtimeAmt" placeholder="e.g. 500" min="50"/>
+    </div>
+    <div class="quick-amounts">
+      <div class="amt-btn" onclick="setAmt(100)">₦100</div>
+      <div class="amt-btn" onclick="setAmt(200)">₦200</div>
+      <div class="amt-btn" onclick="setAmt(500)">₦500</div>
+      <div class="amt-btn" onclick="setAmt(1000)">₦1K</div>
+    </div>
+    <div class="info-box">📞 Airtime delivered <strong>instantly</strong> after payment.</div>
+    <button class="btn btn-primary" id="airtimeBtn" onclick="buyAirtime()">Buy Airtime</button>
+  </div>
+</div>
 
-// ===== PASSWORD EYE TOGGLE =====
-function toggleEye(inputId, btn){
-  const input = document.getElementById(inputId);
-  if(input.type === 'password'){
-    input.type = 'text';
-    btn.textContent = '🙈';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁️';
-  }
-}
-</script>
+<!-- HISTORY -->
+<div class="screen" id="historyScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Transactions</h2></div>
+  <div class="tx-list" id="historyTx"></div>
+</div>
 
-<!-- FIREBASE + APP SCRIPTS -->
+<!-- SUCCESS -->
+<div class="screen" id="successScreen">
+  <div class="success-wrap">
+    <div class="success-icon">✅</div>
+    <h2 class="success-title" id="sucTitle">Successful!</h2>
+    <p class="success-msg" id="sucMsg"></p>
+    <div class="success-card" id="sucCard"></div>
+    <button class="btn btn-primary" onclick="goTo('homeScreen')">Back to Home</button>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profileScreen">
+  <div class="profile-head">
+    <div class="profile-avatar" id="profInitial">A</div>
+    <div class="profile-name" id="profName">User</div>
+    <div class="profile-email" id="profEmail">user@email.com</div>
+  </div>
+  <div style="padding:0 20px;margin-bottom:16px;">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:16px;display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="font-size:12px;color:var(--text2);">Balance</div><div style="font-size:22px;font-weight:800;">₦<span id="profBal">0.00</span></div></div>
+      <button class="btn btn-primary" style="width:auto;padding:10px 18px;font-size:14px;" onclick="showFund()">Fund</button>
+    </div>
+  </div>
+  <div class="profile-menu">
+    <div class="menu-item" onclick="toggleTheme()">
+      <div class="menu-icon" id="themeIcon">🌙</div>
+      <div class="menu-text"><p id="themeLabel">Switch to Light Mode</p><span id="themeSub">Currently dark mode</span></div>
+      <span style="color:var(--text2);">›</span>
+    </div>
+    <div class="menu-item" onclick="toast('Coming soon!')">
+      <div class="menu-icon">🔔</div><div class="menu-text"><p>Notifications</p><span>Manage alerts</span></div><span style="color:var(--text2);">›</span>
+    </div>
+    <div class="menu-item" onclick="toast('Coming soon!')">
+      <div class="menu-icon">🎁</div><div class="menu-text"><p>Refer & Earn</p><span>Get ₦500 per referral</span></div><span style="color:var(--text2);">›</span>
+    </div>
+    <div class="menu-item" onclick="toast('Coming soon!')">
+      <div class="menu-icon">🛠️</div><div class="menu-text"><p>Support</p><span>Chat with us</span></div><span style="color:var(--text2);">›</span>
+    </div>
+  </div>
+  <div class="logout-btn" onclick="doLogout()">Log Out</div>
+</div>
+
+<!-- FUND MODAL -->
+<div class="modal-bg" id="fundModal" onclick="if(event.target===this)closeFund()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Fund Your Wallet</div>
+    <div class="info-box warn">⚠️ <strong>Coming Soon!</strong> For now contact us on WhatsApp to fund your wallet manually.</div>
+    <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20want%20to%20fund%20my%20wallet" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;border-radius:12px;padding:14px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:12px;">💬 Chat on WhatsApp</a>
+    <p style="font-size:12px;color:var(--text2);text-align:center;">Send payment proof → We credit within minutes</p>
+  </div>
+</div>
+
+<!-- PROCESSING -->
+<div id="processing">
+  <div class="proc-card">
+    <div class="spinner"></div>
+    <div class="proc-title" id="procTitle">Processing...</div>
+    <div class="proc-sub" id="procSub">Please wait, do not close</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- BOTTOM NAV -->
+<div id="nav">
+  <div class="nav-item active" id="navHome" onclick="goTo('homeScreen')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div><div class="nav-dot"></div></div>
+  <div class="nav-item" id="navData" onclick="goTo('dataScreen')"><div class="nav-icon">📶</div><div class="nav-label">Data</div><div class="nav-dot"></div></div>
+  <div class="nav-item" id="navAirtime" onclick="goTo('airtimeScreen')"><div class="nav-icon">📞</div><div class="nav-label">Airtime</div><div class="nav-dot"></div></div>
+  <div class="nav-item" id="navHistory" onclick="goTo('historyScreen')"><div class="nav-icon">📋</div><div class="nav-label">History</div><div class="nav-dot"></div></div>
+  <div class="nav-item" id="navProfile" onclick="goTo('profileScreen')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div><div class="nav-dot"></div></div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ===== FIREBASE CONFIG =====
 const firebaseConfig = {
-  apiKey: "AIzaSyAsmztl_Gth5FpH68OCClpDoTXDWlCk11U",
-  authDomain: "quicktop-8eb22.firebaseapp.com",
-  projectId: "quicktop-8eb22",
-  storageBucket: "quicktop-8eb22.firebasestorage.app",
-  messagingSenderId: "1079372854323",
-  appId: "1:1079372854323:web:a09fd674616465192d9f46"
+  apiKey:"AIzaSyAsmztl_Gth5FpH68OCClpDoTXDWlCk11U",
+  authDomain:"quicktop-8eb22.firebaseapp.com",
+  projectId:"quicktop-8eb22",
+  storageBucket:"quicktop-8eb22.firebasestorage.app",
+  messagingSenderId:"1079372854323",
+  appId:"1:1079372854323:web:a09fd674616465192d9f46"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 const db = getFirestore(app);
+const gProvider = new GoogleAuthProvider();
+gProvider.setCustomParameters({prompt:'select_account'});
 
-// ===== BACKEND API (Render.com) =====
-const BACKEND_URL = "https://quicktop-backend-8aon.onrender.com";
-const NET_CODES = {MTN:"01",Airtel:"04",Glo:"02","9mobile":"03"};
+// STATE
+let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null;
 
-async function ckRequest(type, params){
-  try{
-    const url = new URL(BACKEND_URL + "/" + type);
-    for(const [k,v] of Object.entries(params)) url.searchParams.set(k,v);
-    const res = await fetch(url.toString());
-    const data = await res.json();
-    return data;
-  }catch(e){
-    return {status:"error",message:"Could not reach payment server. Try again."};
-  }
-}
+// BACKEND
+const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
+const NETS = {MTN:'01',Airtel:'04',Glo:'02','9mobile':'03'};
 
-// ===== STATE =====
-let currentUser = null;
-let userProfile = null;
-let selectedDataNet = 'MTN';
-let selectedAirtimeNet = 'MTN';
-let selectedPlan = null;
-let transactions = [];
-
-const dataPlans = {
+// DATA PLANS
+const PLANS = {
   MTN:[
-    {size:'500MB Weekly',validity:'SME',price:307,ckCode:'500'},
-    {size:'500MB Monthly',validity:'SME',price:307,ckCode:'500.00'},
-    {size:'1GB Weekly',validity:'SME',price:410,ckCode:'1000'},
-    {size:'1GB Monthly',validity:'SME',price:563,ckCode:'1000.00'},
-    {size:'2GB Weekly',validity:'SME',price:820,ckCode:'2000'},
-    {size:'2GB Monthly',validity:'SME',price:1117,ckCode:'2000.00'},
-    {size:'3GB Weekly',validity:'SME',price:1230,ckCode:'3000'},
-    {size:'5GB Weekly',validity:'SME',price:2050,ckCode:'5000'},
-    {size:'110MB',validity:'1 day Awoof',price:97,ckCode:'100.01'},
-    {size:'230MB',validity:'1 day Awoof',price:194,ckCode:'200.01'},
-    {size:'500MB',validity:'1 day Awoof',price:340,ckCode:'350.01'},
-    {size:'1GB+1.5min',validity:'1 day Awoof',price:485,ckCode:'500.01'},
-    {size:'2.5GB',validity:'1 day Awoof',price:728,ckCode:'750.01'},
-    {size:'500MB',validity:'7 days Direct',price:485,ckCode:'500.02'},
-    {size:'1GB',validity:'7 days Direct',price:776,ckCode:'800.01'},
-    {size:'2GB+2min',validity:'30 days Direct',price:1455,ckCode:'1500.02'},
-    {size:'2.7GB+2min',validity:'30 days Direct',price:1940,ckCode:'2000.01'},
-    {size:'3.5GB+5min',validity:'30 days Direct',price:2425,ckCode:'2500.02'},
-    {size:'7GB',validity:'30 days Direct',price:3395,ckCode:'3500.02'},
-    {size:'10GB+10min',validity:'30 days Direct',price:4365,ckCode:'4500.01'},
-    {size:'20GB',validity:'30 days Direct',price:7275,ckCode:'7500.01'},
+    {s:'500MB Weekly',v:'SME',p:307,c:'500'},{s:'500MB Monthly',v:'SME',p:307,c:'500.00'},
+    {s:'1GB Weekly',v:'SME',p:410,c:'1000'},{s:'1GB Monthly',v:'SME',p:563,c:'1000.00'},
+    {s:'2GB Weekly',v:'SME',p:820,c:'2000'},{s:'3GB Weekly',v:'SME',p:1230,c:'3000'},
+    {s:'5GB Weekly',v:'SME',p:2050,c:'5000'},{s:'110MB',v:'1 day Awoof',p:97,c:'100.01'},
+    {s:'230MB',v:'1 day Awoof',p:194,c:'200.01'},{s:'500MB',v:'1 day Awoof',p:340,c:'350.01'},
+    {s:'1GB+1.5min',v:'1 day',p:485,c:'500.01'},{s:'2GB+2min',v:'30 days',p:1455,c:'1500.02'},
+    {s:'7GB',v:'30 days',p:3395,c:'3500.02'},{s:'10GB+10min',v:'30 days',p:4365,c:'4500.01'},
   ],
   Airtel:[
-    {size:'1GB',validity:'1 day Awoof',price:485,ckCode:'499.91'},
-    {size:'1.5GB',validity:'2 days Awoof',price:582,ckCode:'599.91'},
-    {size:'2GB',validity:'2 days Awoof',price:728,ckCode:'749.91'},
-    {size:'3GB',validity:'2 days Awoof',price:970,ckCode:'999.91'},
-    {size:'5GB',validity:'2 days Awoof',price:1455,ckCode:'1499.91'},
-    {size:'500MB',validity:'7 days Direct',price:485,ckCode:'499.92'},
-    {size:'1GB',validity:'7 days Direct',price:776,ckCode:'799.91'},
-    {size:'1.5GB',validity:'7 days Direct',price:970,ckCode:'999.92'},
-    {size:'3.5GB',validity:'7 days Direct',price:1455,ckCode:'1499.92'},
-    {size:'6GB',validity:'7 days Direct',price:2425,ckCode:'2499.91'},
-    {size:'10GB',validity:'7 days Direct',price:2910,ckCode:'2999.91'},
-    {size:'2GB',validity:'30 days Direct',price:1455,ckCode:'1499.93'},
-    {size:'3GB',validity:'30 days Direct',price:1940,ckCode:'1999.91'},
-    {size:'4GB',validity:'30 days Direct',price:2425,ckCode:'2499.92'},
-    {size:'8GB',validity:'30 days Direct',price:2910,ckCode:'2999.92'},
-    {size:'10GB',validity:'30 days Direct',price:3880,ckCode:'3999.91'},
-    {size:'18GB',validity:'30 days Direct',price:5820,ckCode:'5999.91'},
-    {size:'25GB',validity:'30 days Direct',price:7760,ckCode:'7999.91'},
+    {s:'1GB',v:'1 day',p:485,c:'499.91'},{s:'1.5GB',v:'2 days',p:582,c:'599.91'},
+    {s:'2GB',v:'2 days',p:728,c:'749.91'},{s:'3GB',v:'2 days',p:970,c:'999.91'},
+    {s:'500MB',v:'7 days',p:485,c:'499.92'},{s:'1GB',v:'7 days',p:776,c:'799.91'},
+    {s:'3.5GB',v:'7 days',p:1455,c:'1499.92'},{s:'6GB',v:'7 days',p:2425,c:'2499.91'},
+    {s:'2GB',v:'30 days',p:1455,c:'1499.93'},{s:'3GB',v:'30 days',p:1940,c:'1999.91'},
+    {s:'4GB',v:'30 days',p:2425,c:'2499.92'},{s:'8GB',v:'30 days',p:2910,c:'2999.92'},
+    {s:'10GB',v:'30 days',p:3880,c:'3999.91'},{s:'18GB',v:'30 days',p:5820,c:'5999.91'},
   ],
   Glo:[
-    {size:'200MB',validity:'14 days SME',price:94,ckCode:'200'},
-    {size:'500MB',validity:'7 days SME',price:230,ckCode:'500'},
-    {size:'1GB',validity:'3 days SME',price:322,ckCode:'1000.11'},
-    {size:'3GB',validity:'3 days SME',price:968,ckCode:'3000.11'},
-    {size:'1GB',validity:'7 days SME',price:357,ckCode:'1000.12'},
-    {size:'1GB',validity:'30 days SME',price:461,ckCode:'1000'},
-    {size:'2GB',validity:'30 days SME',price:922,ckCode:'2000'},
-    {size:'3GB',validity:'30 days SME',price:1383,ckCode:'3000'},
-    {size:'5GB',validity:'30 days SME',price:2306,ckCode:'5000'},
-    {size:'10GB',validity:'30 days SME',price:4612,ckCode:'10000'},
-    {size:'125MB',validity:'1 day Awoof',price:97,ckCode:'100.01'},
-    {size:'260MB',validity:'2 day Awoof',price:194,ckCode:'200.01'},
-    {size:'1.5GB',validity:'14 days Direct',price:485,ckCode:'501.01'},
-    {size:'2.6GB',validity:'30 days Direct',price:970,ckCode:'1000.01'},
-    {size:'5GB',validity:'30 days Direct',price:1455,ckCode:'1500.01'},
-    {size:'6.15GB',validity:'30 days Direct',price:1940,ckCode:'2000.01'},
-    {size:'7.5GB',validity:'30 days Direct',price:2425,ckCode:'2500.01'},
-    {size:'10GB',validity:'30 days Direct',price:2910,ckCode:'3000.01'},
+    {s:'200MB',v:'14 days',p:94,c:'200'},{s:'500MB',v:'7 days',p:230,c:'500'},
+    {s:'1GB',v:'3 days',p:322,c:'1000.11'},{s:'1GB',v:'7 days',p:357,c:'1000.12'},
+    {s:'1GB',v:'30 days',p:461,c:'1000'},{s:'2GB',v:'30 days',p:922,c:'2000'},
+    {s:'3GB',v:'30 days',p:1383,c:'3000'},{s:'5GB',v:'30 days',p:2306,c:'5000'},
+    {s:'10GB',v:'30 days',p:4612,c:'10000'},{s:'125MB',v:'1 day',p:97,c:'100.01'},
+    {s:'2.6GB',v:'30 days',p:970,c:'1000.01'},{s:'5GB',v:'30 days',p:1455,c:'1500.01'},
   ],
   '9mobile':[
-    {size:'50MB',validity:'30 days SME',price:25,ckCode:'50'},
-    {size:'100MB',validity:'30 days SME',price:51,ckCode:'100'},
-    {size:'300MB',validity:'30 days SME',price:153,ckCode:'300'},
-    {size:'500MB',validity:'30 days SME',price:246,ckCode:'500'},
-    {size:'1GB',validity:'30 days SME',price:492,ckCode:'1000'},
-    {size:'2GB',validity:'30 days SME',price:984,ckCode:'2000'},
-    {size:'3GB',validity:'30 days SME',price:1476,ckCode:'3000'},
-    {size:'5GB',validity:'30 days SME',price:2460,ckCode:'5000'},
-    {size:'10GB',validity:'30 days SME',price:4920,ckCode:'10000'},
-    {size:'15GB',validity:'30 days SME',price:7380,ckCode:'15000'},
-    {size:'100MB',validity:'1 day Awoof',price:93,ckCode:'100.01'},
-    {size:'180MB',validity:'1 day Awoof',price:140,ckCode:'150.01'},
-    {size:'250MB',validity:'1 day Awoof',price:186,ckCode:'200.01'},
-    {size:'450MB',validity:'1 day Awoof',price:326,ckCode:'350.01'},
-    {size:'650MB',validity:'3 days Awoof',price:465,ckCode:'500.01'},
-    {size:'650MB',validity:'14 days Direct',price:558,ckCode:'600.01'},
-    {size:'1.1GB',validity:'30 days Direct',price:930,ckCode:'1000.01'},
-    {size:'1.4GB',validity:'30 days Direct',price:1116,ckCode:'1200.01'},
-    {size:'2.44GB',validity:'30 days Direct',price:1860,ckCode:'2000.01'},
-    {size:'3.17GB',validity:'30 days Direct',price:2325,ckCode:'2500.01'},
-    {size:'5.1GB',validity:'30 days Direct',price:3720,ckCode:'4000.01'},
-    {size:'6.5GB',validity:'30 days Direct',price:4650,ckCode:'5000.01'},
+    {s:'50MB',v:'30 days',p:25,c:'50'},{s:'100MB',v:'30 days',p:51,c:'100'},
+    {s:'500MB',v:'30 days',p:246,c:'500'},{s:'1GB',v:'30 days',p:492,c:'1000'},
+    {s:'2GB',v:'30 days',p:984,c:'2000'},{s:'3GB',v:'30 days',p:1476,c:'3000'},
+    {s:'5GB',v:'30 days',p:2460,c:'5000'},{s:'10GB',v:'30 days',p:4920,c:'10000'},
+    {s:'100MB',v:'1 day',p:93,c:'100.01'},{s:'250MB',v:'1 day',p:186,c:'200.01'},
+    {s:'650MB',v:'3 days',p:465,c:'500.01'},{s:'1.1GB',v:'30 days',p:930,c:'1000.01'},
+    {s:'2.44GB',v:'30 days',p:1860,c:'2000.01'},{s:'5.1GB',v:'30 days',p:3720,c:'4000.01'},
   ]
 };
 
-// ===== AUTH STATE =====
-// Check onboarding BEFORE Firebase loads
-document.addEventListener('DOMContentLoaded', () => {
-  checkOnboarding();
-  // Safety timeout - if Firebase doesn't load in 5 seconds, show login anyway
-  setTimeout(() => {
-    const loader = document.getElementById('appLoader');
-    if(loader && loader.style.display !== 'none'){
-      loader.style.display = 'none';
-      checkOnboarding();
-      if(localStorage.getItem('qt_onboarded')){
-        showAuth('loginScreen');
-      }
-    }
-  }, 5000);
-});
+// NETWORK PREFIX MAP
+const PREFIX = {
+  '0703':'MTN','0706':'MTN','0803':'MTN','0806':'MTN','0810':'MTN','0813':'MTN',
+  '0814':'MTN','0816':'MTN','0903':'MTN','0906':'MTN','0913':'MTN','0916':'MTN',
+  '0802':'MTN','0804':'MTN','0819':'MTN','0701':'Airtel','0708':'Airtel','0808':'Airtel',
+  '0812':'Airtel','0901':'Airtel','0902':'Airtel','0904':'Airtel','0907':'Airtel','0912':'Airtel',
+  '0705':'Glo','0805':'Glo','0807':'Glo','0811':'Glo','0815':'Glo','0905':'Glo','0915':'Glo',
+  '0809':'9mobile','0817':'9mobile','0818':'9mobile','0908':'9mobile','0909':'9mobile'
+};
 
+// AUTH STATE
 onAuthStateChanged(auth, async (user) => {
-  document.getElementById('appLoader').style.display = 'none';
-  currentUser = null;
-  userProfile = null;
-  if(localStorage.getItem('qt_onboarded')){
-    showAuth('loginScreen');
+  hide('loader');
+  if(user){
+    currentUser = user;
+    await loadProfile();
+    enterApp();
+  } else {
+    currentUser = null;
+    userProfile = null;
+    if(!localStorage.getItem('qt_ob')) showOb();
+    else showAuth('loginScreen');
   }
 });
 
-// ===== FIRESTORE HELPERS =====
-async function loadUserProfile(){
-  const ref = doc(db, 'users', currentUser.uid);
+// FIREBASE HELPERS
+async function loadProfile(){
+  const ref = doc(db,'users',currentUser.uid);
   const snap = await getDoc(ref);
-  if(snap.exists()){
-    userProfile = snap.data();
-  } else {
-    userProfile = {name:'User', phone:'', email:currentUser.email, balance:0, createdAt:new Date().toISOString()};
-    await setDoc(ref, userProfile);
+  if(snap.exists()) userProfile = snap.data();
+  else {
+    userProfile = {name:currentUser.displayName||'User',email:currentUser.email,phone:'',balance:0,createdAt:new Date().toISOString()};
+    await setDoc(ref,userProfile);
   }
 }
 
-async function saveBalance(newBalance){
-  userProfile.balance = newBalance;
-  await updateDoc(doc(db,'users',currentUser.uid),{balance:newBalance});
+async function saveBal(b){
+  userProfile.balance=b;
+  await updateDoc(doc(db,'users',currentUser.uid),{balance:b});
   updateWalletUI();
 }
 
-async function saveTransaction(tx){
-  await addDoc(collection(db,'users',currentUser.uid,'transactions'), tx);
-  transactions.unshift(tx);
+async function saveTx(tx){
+  await addDoc(collection(db,'users',currentUser.uid,'transactions'),tx);
+  txList.unshift(tx);
   renderHomeTx();
 }
 
-async function loadTransactions(){
-  const q = query(collection(db,'users',currentUser.uid,'transactions'), orderBy('timestamp','desc'), limit(20));
+async function loadTx(){
+  const q = query(collection(db,'users',currentUser.uid,'transactions'),orderBy('ts','desc'),limit(20));
   const snap = await getDocs(q);
-  transactions = snap.docs.map(d=>d.data());
+  txList = snap.docs.map(d=>d.data());
   renderHomeTx();
 }
 
-// ===== AUTH ACTIONS =====
-// ===== THEME TOGGLE =====
-window.toggleTheme = function(){
-  const isLight = document.body.classList.toggle('light-mode');
-  localStorage.setItem('qt_theme', isLight ? 'light' : 'dark');
-  updateThemeUI(isLight);
+// APP
+function enterApp(){
+  show('nav');
+  const name = (userProfile.name||'User').split(' ')[0];
+  byId('homeName').textContent = name;
+  byId('profName').textContent = userProfile.name||'User';
+  byId('profEmail').textContent = userProfile.email||currentUser.email;
+  byId('profInitial').textContent = (userProfile.name||'U')[0].toUpperCase();
+  updateWalletUI();
+  loadTx();
+  goTo('homeScreen');
+  initTheme();
+  pingBackend();
+  setInterval(pingBackend, 10*60*1000);
 }
 
-function updateThemeUI(isLight){
-  const icon = document.getElementById('themeIcon');
-  const label = document.getElementById('themeLabel');
-  const desc = document.getElementById('themeDesc');
-  const thumb = document.getElementById('themeThumb');
-  if(isLight){
-    if(icon) icon.textContent = '☀️';
-    if(label) label.textContent = 'Switch to Dark Mode';
-    if(desc) desc.textContent = 'Currently in light mode';
-    if(thumb) thumb.style.transform = 'translateX(20px)';
-  } else {
-    if(icon) icon.textContent = '🌙';
-    if(label) label.textContent = 'Switch to Light Mode';
-    if(desc) desc.textContent = 'Currently in dark mode';
-    if(thumb) thumb.style.transform = 'translateX(0)';
-  }
+// ONBOARDING
+let obIdx=0;
+function showOb(){ byId('ob').classList.add('active'); }
+window.obNext = function(){
+  if(obIdx<3){
+    byId('obs'+obIdx).classList.remove('active'); byId('obs'+obIdx).classList.add('prev');
+    byId('od'+obIdx).classList.remove('active');
+    obIdx++;
+    byId('obs'+obIdx).classList.add('active'); byId('od'+obIdx).classList.add('active');
+    if(obIdx===3) byId('obBtn').textContent='Get Started';
+  } else obSkip();
+}
+window.obSkip = function(){
+  localStorage.setItem('qt_ob','1');
+  byId('ob').classList.remove('active');
+  showAuth('loginScreen');
 }
 
-function loadTheme(){
-  const saved = localStorage.getItem('qt_theme');
-  if(saved === 'light'){
-    document.body.classList.add('light-mode');
-    updateThemeUI(true);
-  }
-}
-
-// Load theme immediately
-loadTheme();
-
+// AUTH ACTIONS
 window.showAuth = function(id){
-  document.getElementById('appLoader').style.display='none';
-  document.getElementById('onboardingScreen').classList.remove('active');
-  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.getElementById('bottomNav').style.display='none';
+  document.querySelectorAll('.auth').forEach(a=>a.classList.remove('active'));
+  byId(id).classList.add('active');
+  hide('nav');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
 }
 
-window.doSignup = async function(){
-  const name = document.getElementById('signupName').value.trim();
-  const phone = document.getElementById('signupPhone').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const pass = document.getElementById('signupPass').value.trim();
-  const errEl = document.getElementById('signupError');
-  errEl.textContent = '';
-
-  const confirm = document.getElementById('signupConfirm').value.trim();
-  if(!name){errEl.textContent='Enter your full name';return;}
-  if(!phone||phone.length<10){errEl.textContent='Enter a valid phone number';return;}
-  if(!email){errEl.textContent='Enter your email';return;}
-  if(!pass||pass.length<6){errEl.textContent='Password must be at least 6 characters';return;}
-  if(pass!==confirm){errEl.textContent='Passwords do not match';return;}
-
-  const btn = document.getElementById('signupBtn');
-  btn.textContent='Creating account...';btn.disabled=true;
-
-  try{
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db,'users',cred.user.uid),{
-      name, phone, email, balance:0, createdAt:new Date().toISOString()
-    });
-  }catch(e){
-    errEl.textContent = e.code==='auth/email-already-in-use'?'Email already registered. Sign in instead.':e.message;
-    btn.textContent='Create Account';btn.disabled=false;
-  }
-}
-
 window.doLogin = async function(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
-  const errEl = document.getElementById('loginError');
-  errEl.textContent='';
-
-  if(!email){errEl.textContent='Enter your email';return;}
-  if(!pass){errEl.textContent='Enter your password';return;}
-
-  const btn = document.getElementById('loginBtn');
-  btn.textContent='Signing in...';btn.disabled=true;
-
+  const email=val('loginEmail'), pass=val('loginPass');
+  byId('loginErr').textContent='';
+  if(!email){byId('loginErr').textContent='Enter email';return;}
+  if(!pass){byId('loginErr').textContent='Enter password';return;}
+  const btn=byId('loginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
   try{
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    currentUser = cred.user;
-    await loadUserProfile();
-    enterApp();
+    const c=await signInWithEmailAndPassword(auth,email,pass);
+    currentUser=c.user; await loadProfile(); hide('loader'); enterApp();
   }catch(e){
-    errEl.textContent = e.code==='auth/invalid-credential'?'Incorrect email or password. Try again.':e.message;
-    btn.textContent='Sign In';btn.disabled=false;
+    byId('loginErr').textContent=e.code==='auth/invalid-credential'?'Wrong email or password':e.message;
+    btn.textContent='Sign In'; btn.disabled=false;
   }
 }
 
-// ===== ADMIN MANUAL CREDIT (only you can use this) =====
-window.adminCreditUser = async function(){
-  const adminPass = prompt('Enter admin password:');
-  if(adminPass !== 'AyoTech2024Admin!'){
-    showToast('Unauthorized');
-    return;
-  }
-  const userEmail = prompt('Enter user email to credit:');
-  const amount = parseFloat(prompt('Enter amount to credit (₦):'));
-  if(!userEmail || !amount || amount < 1){
-    showToast('Invalid details');
-    return;
-  }
+window.doSignup = async function(){
+  const name=val('sigName'),phone=val('sigPhone'),email=val('sigEmail'),pass=val('sigPass'),confirm=val('sigConfirm');
+  byId('sigErr').textContent='';
+  if(!name){byId('sigErr').textContent='Enter full name';return;}
+  if(!phone||phone.length<10){byId('sigErr').textContent='Enter valid phone';return;}
+  if(!email){byId('sigErr').textContent='Enter email';return;}
+  if(!pass||pass.length<6){byId('sigErr').textContent='Password min 6 chars';return;}
+  if(pass!==confirm){byId('sigErr').textContent='Passwords do not match';return;}
+  const btn=byId('sigBtn'); btn.textContent='Creating...'; btn.disabled=true;
   try{
-    // Find user by email in Firestore
-    const {collection, query, where, getDocs, updateDoc, doc, addDoc} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const usersRef = collection(db,'users');
-    const q = query(usersRef, where('email','==',userEmail));
-    const snap = await getDocs(q);
-    if(snap.empty){showToast('User not found');return;}
-    const userDoc = snap.docs[0];
-    const userData = userDoc.data();
-    const newBal = (userData.balance||0) + amount;
-    await updateDoc(doc(db,'users',userDoc.id),{balance:newBal});
-    await addDoc(collection(db,'users',userDoc.id,'transactions'),{
-      type:'fund',amount,timestamp:Date.now(),date:now(),note:'Manual credit by admin'
-    });
-    showToast('✅ ₦'+amount.toLocaleString()+' credited to '+userEmail);
+    const c=await createUserWithEmailAndPassword(auth,email,pass);
+    await setDoc(doc(db,'users',c.user.uid),{name,phone,email,balance:0,createdAt:new Date().toISOString()});
+    currentUser=c.user; await loadProfile(); enterApp();
   }catch(e){
-    showToast('Error: '+e.message);
+    byId('sigErr').textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
+    btn.textContent='Create Account'; btn.disabled=false;
   }
 }
 
-// ===== GOOGLE SIGN IN =====
-window.signInWithGoogle = async function(){
+window.googleSignIn = async function(){
   try{
-    showProcessing('Connecting Google...', 'Please wait');
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    currentUser = user;
-
-    // Check if user exists in Firestore, if not create profile
-    const ref = doc(db, 'users', user.uid);
-    const snap = await getDoc(ref);
-    if(!snap.exists()){
-      // New Google user — create profile
-      await setDoc(ref,{
-        name: user.displayName || 'User',
-        email: user.email,
-        phone: '',
-        balance: 0,
-        createdAt: new Date().toISOString(),
-        provider: 'google'
-      });
-    }
-    await loadUserProfile();
-    hideProcessing();
-    enterApp();
+    showProc('Connecting Google...','Please wait');
+    const r=await signInWithPopup(auth,gProvider);
+    currentUser=r.user; await loadProfile(); hideProc(); enterApp();
   }catch(e){
-    hideProcessing();
-    if(e.code === 'auth/popup-closed-by-user'){
-      showToast('Sign in cancelled');
-    } else if(e.code === 'auth/popup-blocked'){
-      showToast('Please allow popups for this site');
-    } else {
-      showToast('Google sign in failed. Try again.');
-      console.error(e);
-    }
+    hideProc();
+    if(e.code==='auth/popup-closed-by-user') toast('Sign in cancelled');
+    else toast('Google sign in failed');
   }
 }
 
 window.doLogout = async function(){
   await signOut(auth);
-  document.getElementById('bottomNav').style.display='none';
+  hide('nav');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  showAuth('loginScreen');
 }
 
-// ===== APP ENTRY =====
-function enterApp(){
-  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('bottomNav').style.display='flex';
-  const firstName = (userProfile.name||'User').split(' ')[0];
-  document.getElementById('homeUserName').textContent = firstName;
-  document.getElementById('profileName').textContent = userProfile.name||'User';
-  document.getElementById('profileEmail').textContent = userProfile.email||currentUser.email;
-  document.getElementById('profileInitial').textContent = (userProfile.name||'U')[0].toUpperCase();
-  updateWalletUI();
-  loadTransactions();
-  goTo('homeScreen');
-}
-
-// ===== NAVIGATION =====
-const navMap = {homeScreen:'home',dataScreen:'data',airtimeScreen:'airtime',historyScreen:'history',profileScreen:'profile',successScreen:null};
-
+// NAVIGATION
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null};
 window.goTo = function(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  byId(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const navId = navMap[id];
-  if(navId) document.getElementById('nav-'+navId)?.classList.add('active');
+  const nid=NAVMAP[id]; if(nid) byId(nid)?.classList.add('active');
   if(id==='dataScreen') renderPlans();
-  if(id==='historyScreen') renderFullTx();
-  if(id==='profileScreen') document.getElementById('profileBal').textContent = fmt(userProfile?.balance||0);
+  if(id==='historyScreen') renderHistoryTx();
+  if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
   window.scrollTo(0,0);
 }
 
-// ===== NETWORK =====
-window.selectNet = function(el, type){
-  el.closest('.network-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
+// NETWORK
+window.pickNet = function(el,type){
+  el.closest('.net-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
-  if(type==='data'){selectedDataNet=el.dataset.net;selectedPlan=null;renderPlans();}
-  else selectedAirtimeNet=el.dataset.net;
+  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();}
+  else airtimeNet=el.dataset.net;
 }
 
-// ===== PLANS =====
+window.autoNet = function(phone,type){
+  if(phone.length<4) return;
+  const net=PREFIX[phone.substring(0,5)]||PREFIX[phone.substring(0,4)];
+  if(!net) return;
+  const screen = type==='data'?'dataScreen':'airtimeScreen';
+  byId(screen).querySelectorAll('.net-pill').forEach(p=>{
+    p.classList.remove('active');
+    if(p.dataset.net===net) p.classList.add('active');
+  });
+  if(type==='data'){dataNet=net;selPlan=null;renderPlans();}
+  else airtimeNet=net;
+  const badge = byId(type==='data'?'dataBadge':'airtimeBadge');
+  const dots={MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
+  badge.textContent=(dots[net]||'📶')+' '+net+' detected';
+  badge.style.display='block';
+  toast('📶 '+net+' detected');
+}
+
+// PLANS
 function renderPlans(){
-  const plans = dataPlans[selectedDataNet]||[];
-  document.getElementById('plansGrid').innerHTML = plans.map((p,i)=>`
-    <div class="plan-card ${selectedPlan===i?'selected':''}" onclick="selectPlan(${i})">
-      <div class="plan-size">${p.size}</div>
-      <div class="plan-validity">${p.validity}</div>
-      <div class="plan-price">₦${p.price.toLocaleString()}</div>
+  const plans=PLANS[dataNet]||[];
+  byId('plansGrid').innerHTML=plans.map((p,i)=>`
+    <div class="plan-card ${selPlan===i?'selected':''}" onclick="pickPlan(${i})">
+      <div class="plan-size">${p.s}</div>
+      <div class="plan-val">${p.v}</div>
+      <div class="plan-price">₦${p.p.toLocaleString()}</div>
     </div>`).join('');
 }
+window.pickPlan=function(i){selPlan=i;renderPlans();}
+window.setAmt=function(a){byId('airtimeAmt').value=a;}
 
-window.selectPlan = function(i){selectedPlan=i;renderPlans();}
-
-// ===== AUTO NETWORK DETECTION =====
-const networkPrefixes = {
-  MTN: [
-    '0703','0706','0703','0706','0813','0816','0810','0814','0903','0906',
-    '0703','0706','0813','0816','0810','0814','0903','0906','0913','0916',
-    '07025','07026','07028','07029','0802','0818','0819','0909','0908',
-    '0804','07020','0703','0706','0803','0806','0810','0813','0814','0816',
-    '0903','0906','0913','0916','0903','0906'
-  ],
-  Airtel: [
-    '0701','0708','0802','0808','0812','0901','0902','0904','0907','0912',
-    '0700','07011','07016','07018','07019','07098','07099'
-  ],
-  Glo: [
-    '0705','0805','0807','0811','0815','0905','0915',
-    '07050','07051','07052','07053','07054','07055','07056','07057','07058'
-  ],
-  '9mobile': [
-    '0809','0817','0818','0908','0909',
-    '07028','07029','0818','0819'
-  ]
-};
-
-// More accurate prefix map
-const prefixMap = {
-  // MTN
-  '0703':'MTN','0706':'MTN','0803':'MTN','0806':'MTN','0810':'MTN',
-  '0813':'MTN','0814':'MTN','0816':'MTN','0903':'MTN','0906':'MTN',
-  '0913':'MTN','0916':'MTN','0802':'MTN','0804':'MTN','0819':'MTN',
-  '0909':'MTN','0908':'MTN','07025':'MTN','07026':'MTN',
-  // Airtel  
-  '0701':'Airtel','0708':'Airtel','0808':'Airtel','0812':'Airtel',
-  '0901':'Airtel','0902':'Airtel','0904':'Airtel','0907':'Airtel',
-  '0912':'Airtel','07011':'Airtel','07016':'Airtel','07017':'Airtel',
-  '07018':'Airtel','07019':'Airtel',
-  // Glo
-  '0705':'Glo','0805':'Glo','0807':'Glo','0811':'Glo',
-  '0815':'Glo','0905':'Glo','0915':'Glo','07050':'Glo',
-  '07051':'Glo','07052':'Glo','07053':'Glo','07054':'Glo',
-  '07055':'Glo','07056':'Glo','07057':'Glo','07058':'Glo',
-  // 9mobile
-  '0809':'9mobile','0817':'9mobile','0818':'9mobile',
-  '0909':'9mobile','07028':'9mobile','07029':'9mobile'
-};
-
-function detectNetwork(phone){
-  if(!phone || phone.length < 4) return null;
-  // Check 5-digit prefix first, then 4-digit
-  const prefix5 = phone.substring(0,5);
-  const prefix4 = phone.substring(0,4);
-  return prefixMap[prefix5] || prefixMap[prefix4] || null;
-}
-
-function autoSelectNetwork(phone, type){
-  const network = detectNetwork(phone);
-  if(!network) return;
-
-  // Update network pills
-  const container = document.querySelector('#' + type + 'Screen .network-pills');
-  if(!container) return;
-  container.querySelectorAll('.net-pill').forEach(p => {
-    p.classList.remove('active');
-    if(p.dataset.net === network) p.classList.add('active');
-  });
-
-  if(type === 'data'){
-    selectedDataNet = network;
-    selectedPlan = null;
-    renderPlans();
-  } else {
-    selectedAirtimeNet = network;
-  }
-
-  // Show badge
-  const badge = document.getElementById('dataNetBadge');
-  if(badge && type==='data'){
-    badge.style.display='block';
-    const dots = {MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
-    badge.textContent = (dots[network]||'📶') + ' ' + network + ' number detected';
-  }
-  showToast('📶 ' + network + ' detected automatically');
-}
-window.setAirtime = function(a){document.getElementById('airtimeAmount').value=a;}
-
-// ===== BUY DATA =====
+// BUY DATA
 window.buyData = async function(){
-  const phone = document.getElementById('dataPhone').value.trim();
-  if(!phone||phone.length<10){showToast('Enter a valid phone number');return;}
-  if(selectedPlan===null){showToast('Select a data plan');return;}
-  const plan = dataPlans[selectedDataNet][selectedPlan];
-  if((userProfile.balance||0)<plan.price){showToast('Insufficient balance. Fund your wallet first.');return;}
-
-  const btn = document.getElementById('dataBuyBtn');
-  btn.textContent='Processing...';btn.disabled=true;btn.classList.add('loading');
-  showProcessing('Buying Data...', `Sending ${plan.size} to ${phone}`);
-
+  const phone=val('dataPhone');
+  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
+  if(selPlan===null){toast('Select a data plan');return;}
+  const plan=PLANS[dataNet][selPlan];
+  if((userProfile.balance||0)<plan.p){toast('Insufficient balance. Fund wallet first.');return;}
+  const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
-    const ref = 'QT'+Date.now();
-    const result = await ckRequest('data',{
-      network:NET_CODES[selectedDataNet],
-      plan:plan.ckCode,
-      phone:phone,
-      ref:ref
-    });
-    btn.textContent='Buy Data';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
-
-    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
+    const ref='QT'+Date.now();
+    const res=await fetch(`${BACKEND}/data?network=${NETS[dataNet]}&plan=${plan.c}&phone=${phone}&ref=${ref}`);
+    const data=await res.json();
+    btn.textContent='Buy Data'; btn.disabled=false; hideProc();
+    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
     if(ok){
-      const newBal = (userProfile.balance||0) - plan.price;
-      await saveBalance(newBal);
-      await saveTransaction({type:'data',network:selectedDataNet,phone,plan:plan.size,amount:plan.price,ref,timestamp:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',`${plan.size} ${selectedDataNet} data sent to ${phone}`,[
-        ['Network',selectedDataNet],['Data',plan.size],['Phone',phone],['Amount','₦'+plan.price.toLocaleString()],['Ref',ref],['Status','✅ Successful']
-      ]);
-    } else {
-      showToast('❌ '+(result?.message||result?.response_description||'Transaction failed'));
-    }
-  }catch(e){
-    btn.textContent='Buy Data';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
-    showToast('Network error. Try again.');
-  }
+      await saveBal((userProfile.balance||0)-plan.p);
+      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
+      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+  }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
 
-// ===== BUY AIRTIME =====
+// BUY AIRTIME
 window.buyAirtime = async function(){
-  const phone = document.getElementById('airtimePhone').value.trim();
-  const amount = parseInt(document.getElementById('airtimeAmount').value);
-  if(!phone||phone.length<10){showToast('Enter a valid phone number');return;}
-  if(!amount||amount<50){showToast('Minimum airtime is ₦50');return;}
-  if((userProfile.balance||0)<amount){showToast('Insufficient balance. Fund your wallet first.');return;}
-
-  const btn = document.getElementById('airtimeBtn');
-  btn.textContent='Processing...';btn.disabled=true;btn.classList.add('loading');
-  showProcessing('Sending Airtime...', `Topping up ${phone} with ₦${amount.toLocaleString()}`);
-
+  const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
+  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
+  if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
+  if((userProfile.balance||0)<amount){toast('Insufficient balance. Fund wallet first.');return;}
+  const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
   try{
-    const ref = 'QT'+Date.now();
-    const result = await ckRequest('airtime',{
-      network:NET_CODES[selectedAirtimeNet],
-      amount:amount,
-      phone:phone,
-      ref:ref
-    });
-    btn.textContent='Buy Airtime';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
-
-    const ok = result?.status==='successful'||result?.Status==='successful'||result?.response_description==='TRANSACTION SUCCESSFUL'||result?.status==='ORDER_RECEIVED'||result?.status==='TRANSACTION SUCCESSFUL'||result?.OrderStatus==='SUCCESSFUL'||result?.OrderStatus==='successful';
+    const ref='QT'+Date.now();
+    const res=await fetch(`${BACKEND}/airtime?network=${NETS[airtimeNet]}&amount=${amount}&phone=${phone}&ref=${ref}`);
+    const data=await res.json();
+    btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
+    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
     if(ok){
-      const newBal = (userProfile.balance||0) - amount;
-      await saveBalance(newBal);
-      await saveTransaction({type:'airtime',network:selectedAirtimeNet,phone,amount,ref,timestamp:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅',`₦${amount.toLocaleString()} ${selectedAirtimeNet} airtime sent to ${phone}`,[
-        ['Network',selectedAirtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']
-      ]);
-    } else {
-      showToast('❌ '+(result?.message||result?.response_description||'Transaction failed'));
-    }
-  }catch(e){
-    btn.textContent='Buy Airtime';btn.disabled=false;btn.classList.remove('loading');hideProcessing();
-    showToast('Network error. Try again.');
-  }
+      await saveBal((userProfile.balance||0)-amount);
+      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
+      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+  }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
 
-// ===== FUND WALLET =====
-window.showFundModal = function(){document.getElementById('fundModal').classList.add('show');}
-window.closeFundModal = function(e){if(e.target.id==='fundModal')document.getElementById('fundModal').classList.remove('show');}
-window.copyAcct = function(){navigator.clipboard.writeText('0123456789').catch(()=>{});showToast('Account number copied!');}
+// FUND
+window.showFund=function(){byId('fundModal').classList.add('show');}
+window.closeFund=function(){byId('fundModal').classList.remove('show');}
 
-window.fundWallet = async function(){
-  // Demo funding disabled - Paystack integration coming soon
-  showToast('Please contact WhatsApp to fund wallet');
-}
-
-// ===== SUCCESS =====
-function showSuccess(title, msg, rows){
-  document.getElementById('successTitle').textContent=title;
-  document.getElementById('successMsg').textContent=msg;
-  document.getElementById('successCard').innerHTML=rows.map(r=>`<div class="success-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+// SUCCESS
+function showSuccess(title,msg,rows){
+  byId('sucTitle').textContent=title; byId('sucMsg').textContent=msg;
+  byId('sucCard').innerHTML=rows.map(r=>`<div class="success-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
   goTo('successScreen');
 }
 
-// ===== UI HELPERS =====
+// UI
 function updateWalletUI(){
-  const bal = userProfile?.balance||0;
-  document.getElementById('walletBal').textContent=fmt(bal);
-  document.getElementById('profileBal').textContent=fmt(bal);
+  const b=userProfile?.balance||0;
+  byId('walletBal').textContent=fmt(b);
+  byId('profBal').textContent=fmt(b);
 }
 
 function renderHomeTx(){
-  const list = document.getElementById('homeTxList');
-  if(!transactions.length){
-    list.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet.<br>Buy data or airtime to get started.</p></div>';
-    return;
-  }
-  list.innerHTML=transactions.slice(0,5).map(txHTML).join('');
+  const el=byId('homeTx');
+  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.<br>Buy data or airtime to get started.</p></div>';return;}
+  el.innerHTML=txList.slice(0,5).map(txHTML).join('');
 }
 
-function renderFullTx(){
-  const list = document.getElementById('fullTxList');
-  if(!transactions.length){
-    list.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet.</p></div>';
-    return;
-  }
-  list.innerHTML=transactions.map(txHTML).join('');
+function renderHistoryTx(){
+  const el=byId('historyTx');
+  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.</p></div>';return;}
+  el.innerHTML=txList.map(txHTML).join('');
 }
 
 function txHTML(tx){
   const icons={data:'📶',airtime:'📞',fund:'💰'};
-  const cls={data:'data',airtime:'airtime',fund:'fund'};
-  const isDebit=tx.type!=='fund';
-  const label=tx.type==='data'?`${tx.network} ${tx.plan} Data → ${tx.phone}`:tx.type==='airtime'?`${tx.network} Airtime → ${tx.phone}`:'Wallet Funded';
-  return `<div class="tx-item">
-    <div class="tx-icon ${cls[tx.type]}">${icons[tx.type]}</div>
-    <div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${tx.date}</div></div>
-    <div class="tx-amount ${isDebit?'debit':'credit'}">${isDebit?'-':'+'}₦${tx.amount.toLocaleString()}</div>
-  </div>`;
+  const debit=tx.type!=='fund';
+  const label=tx.type==='data'?`${tx.network} ${tx.plan} → ${tx.phone}`:tx.type==='airtime'?`${tx.network} Airtime → ${tx.phone}`:'Wallet Funded';
+  return `<div class="tx-item"><div class="tx-icon ${tx.type}">${icons[tx.type]}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${tx.date||''}</div></div><div class="tx-amt ${debit?'debit':'credit'}">${debit?'-':'+'}₦${tx.amount.toLocaleString()}</div></div>`;
 }
 
-window.showProcessing = function(title, sub){
-  document.getElementById('processingTitle').textContent = title || 'Processing...';
-  document.getElementById('processingSub').textContent = sub || 'Please wait, do not close';
-  document.getElementById('processingOverlay').classList.add('show');
+// THEME
+function initTheme(){
+  const saved=localStorage.getItem('qt_theme');
+  if(saved==='light'){document.body.classList.add('light');updateThemeUI(true);}
 }
-window.hideProcessing = function(){
-  document.getElementById('processingOverlay').classList.remove('show');
+window.toggleTheme=function(){
+  const isLight=document.body.classList.toggle('light');
+  localStorage.setItem('qt_theme',isLight?'light':'dark');
+  updateThemeUI(isLight);
+  toast(isLight?'☀️ Light mode on':'🌙 Dark mode on');
 }
-window.showToast = function(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
+function updateThemeUI(light){
+  byId('themeIcon').textContent=light?'☀️':'🌙';
+  byId('themeLabel').textContent=light?'Switch to Dark Mode':'Switch to Light Mode';
+  byId('themeSub').textContent=light?'Currently light mode':'Currently dark mode';
+}
+
+// EYE TOGGLE
+window.toggleEye=function(id,btn){
+  const inp=byId(id);
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'👁️':'🙈';
+}
+
+// PROCESSING
+function showProc(t,s){byId('procTitle').textContent=t;byId('procSub').textContent=s;byId('processing').classList.add('show');}
+function hideProc(){byId('processing').classList.remove('show');}
+
+// TOAST
+window.toast=function(msg){
+  const t=byId('toast'); t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+// BACKEND PING
+function pingBackend(){fetch(BACKEND+'/').catch(()=>{});}
+
+// OFFLINE DETECTION
+if(!navigator.onLine){
+  byId('loader').style.display='none';
+  const off=byId('offlineMsg'); off.style.display='flex';
+}
+window.addEventListener('online',()=>location.reload());
+window.addEventListener('offline',()=>{byId('offlineMsg').style.display='flex';});
+
+// HELPERS
+function byId(id){return document.getElementById(id);}
+function val(id){return (byId(id)?.value||'').trim();}
+function hide(id){const el=byId(id);if(el)el.style.display='none';}
+function show(id){const el=byId(id);if(el)el.style.display='flex';}
 function fmt(n){return parseFloat(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function now(){return new Date().toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-</script>
-<script>
-// ===== THEME SWITCHER =====
-function toggleTheme(){
-  const body = document.body;
-  const isLight = body.classList.toggle('light-mode');
-  localStorage.setItem('qt_theme', isLight ? 'light' : 'dark');
-  updateThemeUI(isLight);
-  showToast(isLight ? '☀️ Light mode on' : '🌙 Dark mode on');
-}
 
-function updateThemeUI(isLight){
-  const icon = document.querySelector('#themeMenuItem .menu-icon');
-  const label = document.getElementById('themeLabel');
-  const sub = document.getElementById('themeSubLabel');
-  if(isLight){
-    icon.textContent = '☀️';
-    label.textContent = 'Switch to Dark Mode';
-    sub.textContent = 'Currently light mode';
-  } else {
-    icon.textContent = '🌙';
-    label.textContent = 'Switch to Light Mode';
-    sub.textContent = 'Currently dark mode';
-  }
-}
-
-function initTheme(){
-  // Default to dark mode always for professional look
-  const saved = localStorage.getItem('qt_theme');
-  if(saved === 'light'){
-    document.body.classList.add('light-mode');
-    updateThemeUI(true);
-  } else {
-    // Force dark mode as default
-    document.body.classList.remove('light-mode');
-    localStorage.setItem('qt_theme','dark');
-    updateThemeUI(false);
-  }
-}
-
-// Init theme on load
-initTheme();
-
-// Hide loader after max 8 seconds no matter what
-setTimeout(() => {
-  const loader = document.getElementById('appLoader');
-  if(loader) loader.style.display = 'none';
-  if(!document.querySelector('.screen.active') && !document.querySelector('.auth-screen.active')){
-    checkOnboarding();
-    if(localStorage.getItem('qt_onboarded')) showAuth('loginScreen');
-  }
-}, 8000);
-
-// ===== KEEP BACKEND ALIVE =====
-// Ping backend every 10 minutes so Render free tier never sleeps
-function pingBackend(){
-  fetch(BACKEND_URL + '/')
-    .then(() => console.log('Backend alive ✅'))
-    .catch(() => console.log('Backend ping failed'));
-}
-// Ping immediately on load to pre-warm
-pingBackend();
-// Then every 10 minutes
-setInterval(pingBackend, 10 * 60 * 1000);
-
-// Register Service Worker
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('SW registered'))
-      .catch(err => console.log('SW error:', err));
-  });
-}
-
-// PWA Install Prompt
+// PWA INSTALL
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Show install banner after 3 seconds
-  setTimeout(() => {
-    if(deferredPrompt) showInstallBanner();
-  }, 3000);
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  setTimeout(()=>{if(deferredPrompt)showInstall();},3000);
 });
-
-function showInstallBanner(){
-  const banner = document.createElement('div');
-  banner.id = 'installBanner';
-  banner.style.cssText = `
-    position:fixed;bottom:90px;left:16px;right:16px;
-    background:#111827;border:1.5px solid #00E676;
-    border-radius:16px;padding:16px;z-index:300;
-    display:flex;align-items:center;gap:12px;
-    box-shadow:0 4px 24px rgba(0,0,0,.5);
-  `;
-  banner.innerHTML = `
-    <div style="font-size:32px">⚡</div>
-    <div style="flex:1">
-      <div style="font-size:14px;font-weight:700;color:#F0F4FF;">Install QuickTop</div>
-      <div style="font-size:12px;color:#8B9BBE;margin-top:2px;">Add to home screen for faster access</div>
-    </div>
-    <button onclick="installApp()" style="background:#00E676;color:#0A0F1E;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Install</button>
-    <button onclick="document.getElementById('installBanner').remove()" style="background:none;border:none;color:#8B9BBE;font-size:20px;cursor:pointer;">×</button>
-  `;
-  document.body.appendChild(banner);
+function showInstall(){
+  const b=byId('installBanner'); if(b){b.innerHTML=`<div style="font-size:28px">⚡</div><div style="flex:1"><div style="font-size:14px;font-weight:700;">Install QuickTop</div><div style="font-size:12px;color:var(--text2);">Add to home screen</div></div><button onclick="installApp()" style="background:var(--accent);color:#0A0F1E;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Install</button><button onclick="byId('installBanner').classList.remove('show')" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">×</button>`;b.classList.add('show');}
 }
+window.installApp=async function(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;byId('installBanner')?.classList.remove('show');}
 
-async function installApp(){
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const result = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  document.getElementById('installBanner')?.remove();
+// SW
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 </script>
 </body>
