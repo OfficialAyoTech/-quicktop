@@ -587,63 +587,350 @@ const PREFIX = {
 
 // AUTH STATE
 onAuthStateChanged(auth, async (user) => {
-
-  console.log("1");
-
   hide('loader');
-
-  console.log("2");
-
   if(user){
-
-    console.log("3");
-
     currentUser = user;
-
     await loadProfile();
-
-    console.log("4");
-
     enterApp();
-
-    console.log("5");
-
-  }else{
-
-    console.log("6");
-
+  } else {
     currentUser = null;
     userProfile = null;
-
-    if(!localStorage.getItem('qt_ob')){
-      console.log("7");
-      showOb();
-    }else{
-      console.log("8");
-      showAuth('loginScreen');
-    }
-
-    console.log("9");
+    if(!localStorage.getItem('qt_ob')) showOb();
+    else showAuth('loginScreen');
   }
-
 });
 
 // FIREBASE HELPERS
-// FIREBASE HELPERS
-
 async function loadProfile(){
-
-  userProfile = {
-    name: currentUser.displayName || "User",
-    email: currentUser.email,
-    phone: "",
-    balance: 0
-  };
-
+  const ref = doc(db,'users',currentUser.uid);
+  const snap = await getDoc(ref);
+  if(snap.exists()) userProfile = snap.data();
+  else {
+    userProfile = {name:currentUser.displayName||'User',email:currentUser.email,phone:'',balance:0,createdAt:new Date().toISOString()};
+    await setDoc(ref,userProfile);
+  }
 }
 
 async function saveBal(b){
-  userProfile.balance = b;
+  userProfile.balance=b;
   await updateDoc(doc(db,'users',currentUser.uid),{balance:b});
   updateWalletUI();
 }
+
+async function saveTx(tx){
+  await addDoc(collection(db,'users',currentUser.uid,'transactions'),tx);
+  txList.unshift(tx);
+  renderHomeTx();
+}
+
+async function loadTx(){
+  const q = query(collection(db,'users',currentUser.uid,'transactions'),orderBy('ts','desc'),limit(20));
+  const snap = await getDocs(q);
+  txList = snap.docs.map(d=>d.data());
+  renderHomeTx();
+}
+
+// APP
+function enterApp(){
+  document.querySelectorAll('.auth').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  show('nav');
+  window.scrollTo(0,0);
+  const name = (userProfile.name||'User').split(' ')[0];
+  byId('homeName').textContent = name;
+  byId('profName').textContent = userProfile.name||'User';
+  byId('profEmail').textContent = userProfile.email||currentUser.email;
+  byId('profInitial').textContent = (userProfile.name||'U')[0].toUpperCase();
+  updateWalletUI();
+  loadTx();
+  goTo('homeScreen');
+  initTheme();
+  pingBackend();
+  setInterval(pingBackend, 10*60*1000);
+}
+
+// ONBOARDING
+let obIdx=0;
+function showOb(){ byId('ob').classList.add('active'); }
+window.obNext = function(){
+  if(obIdx<3){
+    byId('obs'+obIdx).classList.remove('active'); byId('obs'+obIdx).classList.add('prev');
+    byId('od'+obIdx).classList.remove('active');
+    obIdx++;
+    byId('obs'+obIdx).classList.add('active'); byId('od'+obIdx).classList.add('active');
+    if(obIdx===3) byId('obBtn').textContent='Get Started';
+  } else obSkip();
+}
+window.obSkip = function(){
+  localStorage.setItem('qt_ob','1');
+  byId('ob').classList.remove('active');
+  showAuth('loginScreen');
+}
+
+// AUTH ACTIONS
+window.showAuth = function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.auth').forEach(a=>a.classList.remove('active'));
+  hide('nav');
+  window.scrollTo(0,0);
+  byId(id).classList.add('active');
+}
+
+window.doLogin = async function(){
+  const email=val('loginEmail'), pass=val('loginPass');
+  byId('loginErr').textContent='';
+  if(!email){byId('loginErr').textContent='Enter email';return;}
+  if(!pass){byId('loginErr').textContent='Enter password';return;}
+  const btn=byId('loginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
+  try{
+    const c=await signInWithEmailAndPassword(auth,email,pass);
+    currentUser=c.user; await loadProfile(); hide('loader'); enterApp();
+  }catch(e){
+    byId('loginErr').textContent=e.code==='auth/invalid-credential'?'Wrong email or password':e.message;
+    btn.textContent='Sign In'; btn.disabled=false;
+  }
+}
+
+window.doSignup = async function(){
+  const name=val('sigName'),phone=val('sigPhone'),email=val('sigEmail'),pass=val('sigPass'),confirm=val('sigConfirm');
+  byId('sigErr').textContent='';
+  if(!name){byId('sigErr').textContent='Enter full name';return;}
+  if(!phone||phone.length<10){byId('sigErr').textContent='Enter valid phone';return;}
+  if(!email){byId('sigErr').textContent='Enter email';return;}
+  if(!pass||pass.length<6){byId('sigErr').textContent='Password min 6 chars';return;}
+  if(pass!==confirm){byId('sigErr').textContent='Passwords do not match';return;}
+  const btn=byId('sigBtn'); btn.textContent='Creating...'; btn.disabled=true;
+  try{
+    const c=await createUserWithEmailAndPassword(auth,email,pass);
+    await setDoc(doc(db,'users',c.user.uid),{name,phone,email,balance:0,createdAt:new Date().toISOString()});
+    currentUser=c.user; await loadProfile(); enterApp();
+  }catch(e){
+    byId('sigErr').textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
+    btn.textContent='Create Account'; btn.disabled=false;
+  }
+}
+
+window.googleSignIn = async function(){
+  try{
+    showProc('Connecting Google...','Please wait');
+    const r=await signInWithPopup(auth,gProvider);
+    currentUser=r.user; await loadProfile(); hideProc(); enterApp();
+  }catch(e){
+    hideProc();
+    if(e.code==='auth/popup-closed-by-user') toast('Sign in cancelled');
+    else toast('Google sign in failed');
+  }
+}
+
+window.doLogout = async function(){
+  await signOut(auth);
+  hide('nav');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  showAuth('loginScreen');
+}
+
+// NAVIGATION
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null};
+window.goTo = function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  byId(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const nid=NAVMAP[id]; if(nid) byId(nid)?.classList.add('active');
+  if(id==='dataScreen') renderPlans();
+  if(id==='historyScreen') renderHistoryTx();
+  if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
+  window.scrollTo(0,0);
+}
+
+// NETWORK
+window.pickNet = function(el,type){
+  el.closest('.net-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();}
+  else airtimeNet=el.dataset.net;
+}
+
+window.autoNet = function(phone,type){
+  if(phone.length<4) return;
+  const net=PREFIX[phone.substring(0,5)]||PREFIX[phone.substring(0,4)];
+  if(!net) return;
+  const screen = type==='data'?'dataScreen':'airtimeScreen';
+  byId(screen).querySelectorAll('.net-pill').forEach(p=>{
+    p.classList.remove('active');
+    if(p.dataset.net===net) p.classList.add('active');
+  });
+  if(type==='data'){dataNet=net;selPlan=null;renderPlans();}
+  else airtimeNet=net;
+  const badge = byId(type==='data'?'dataBadge':'airtimeBadge');
+  const dots={MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
+  badge.textContent=(dots[net]||'📶')+' '+net+' detected';
+  badge.style.display='block';
+  toast('📶 '+net+' detected');
+}
+
+// PLANS
+function renderPlans(){
+  const plans=PLANS[dataNet]||[];
+  byId('plansGrid').innerHTML=plans.map((p,i)=>`
+    <div class="plan-card ${selPlan===i?'selected':''}" onclick="pickPlan(${i})">
+      <div class="plan-size">${p.s}</div>
+      <div class="plan-val">${p.v}</div>
+      <div class="plan-price">₦${p.p.toLocaleString()}</div>
+    </div>`).join('');
+}
+window.pickPlan=function(i){selPlan=i;renderPlans();}
+window.setAmt=function(a){byId('airtimeAmt').value=a;}
+
+// BUY DATA
+window.buyData = async function(){
+  const phone=val('dataPhone');
+  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
+  if(selPlan===null){toast('Select a data plan');return;}
+  const plan=PLANS[dataNet][selPlan];
+  if((userProfile.balance||0)<plan.p){toast('Insufficient balance. Fund wallet first.');return;}
+  const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Buying Data...','Sending '+plan.s+' to '+phone);
+  try{
+    const ref='QT'+Date.now();
+    const res=await fetch(`${BACKEND}/data?network=${NETS[dataNet]}&plan=${plan.c}&phone=${phone}&ref=${ref}`);
+    const data=await res.json();
+    btn.textContent='Buy Data'; btn.disabled=false; hideProc();
+    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
+    if(ok){
+      await saveBal((userProfile.balance||0)-plan.p);
+      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
+      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+  }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
+}
+
+// BUY AIRTIME
+window.buyAirtime = async function(){
+  const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
+  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
+  if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
+  if((userProfile.balance||0)<amount){toast('Insufficient balance. Fund wallet first.');return;}
+  const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
+  try{
+    const ref='QT'+Date.now();
+    const res=await fetch(`${BACKEND}/airtime?network=${NETS[airtimeNet]}&amount=${amount}&phone=${phone}&ref=${ref}`);
+    const data=await res.json();
+    btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
+    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
+    if(ok){
+      await saveBal((userProfile.balance||0)-amount);
+      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
+      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+  }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
+}
+
+// FUND
+window.showFund=function(){byId('fundModal').classList.add('show');}
+window.closeFund=function(){byId('fundModal').classList.remove('show');}
+
+// SUCCESS
+function showSuccess(title,msg,rows){
+  byId('sucTitle').textContent=title; byId('sucMsg').textContent=msg;
+  byId('sucCard').innerHTML=rows.map(r=>`<div class="success-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+  goTo('successScreen');
+}
+
+// UI
+function updateWalletUI(){
+  const b=userProfile?.balance||0;
+  byId('walletBal').textContent=fmt(b);
+  byId('profBal').textContent=fmt(b);
+}
+
+function renderHomeTx(){
+  const el=byId('homeTx');
+  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.<br>Buy data or airtime to get started.</p></div>';return;}
+  el.innerHTML=txList.slice(0,5).map(txHTML).join('');
+}
+
+function renderHistoryTx(){
+  const el=byId('historyTx');
+  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.</p></div>';return;}
+  el.innerHTML=txList.map(txHTML).join('');
+}
+
+function txHTML(tx){
+  const icons={data:'📶',airtime:'📞',fund:'💰'};
+  const debit=tx.type!=='fund';
+  const label=tx.type==='data'?`${tx.network} ${tx.plan} → ${tx.phone}`:tx.type==='airtime'?`${tx.network} Airtime → ${tx.phone}`:'Wallet Funded';
+  return `<div class="tx-item"><div class="tx-icon ${tx.type}">${icons[tx.type]}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${tx.date||''}</div></div><div class="tx-amt ${debit?'debit':'credit'}">${debit?'-':'+'}₦${tx.amount.toLocaleString()}</div></div>`;
+}
+
+// THEME
+function initTheme(){
+  const saved=localStorage.getItem('qt_theme');
+  if(saved==='light'){document.body.classList.add('light');updateThemeUI(true);}
+}
+window.toggleTheme=function(){
+  const isLight=document.body.classList.toggle('light');
+  localStorage.setItem('qt_theme',isLight?'light':'dark');
+  updateThemeUI(isLight);
+  toast(isLight?'☀️ Light mode on':'🌙 Dark mode on');
+}
+function updateThemeUI(light){
+  byId('themeIcon').textContent=light?'☀️':'🌙';
+  byId('themeLabel').textContent=light?'Switch to Dark Mode':'Switch to Light Mode';
+  byId('themeSub').textContent=light?'Currently light mode':'Currently dark mode';
+}
+
+// EYE TOGGLE
+window.toggleEye=function(id,btn){
+  const inp=byId(id);
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'👁️':'🙈';
+}
+
+// PROCESSING
+function showProc(t,s){byId('procTitle').textContent=t;byId('procSub').textContent=s;byId('processing').classList.add('show');}
+function hideProc(){byId('processing').classList.remove('show');}
+
+// TOAST
+window.toast=function(msg){
+  const t=byId('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// BACKEND PING
+function pingBackend(){fetch(BACKEND+'/').catch(()=>{});}
+
+// OFFLINE DETECTION
+if(!navigator.onLine){
+  byId('loader').style.display='none';
+  const off=byId('offlineMsg'); off.style.display='flex';
+}
+window.addEventListener('online',()=>location.reload());
+window.addEventListener('offline',()=>{byId('offlineMsg').style.display='flex';});
+
+// HELPERS
+function byId(id){return document.getElementById(id);}
+function val(id){return (byId(id)?.value||'').trim();}
+function hide(id){const el=byId(id);if(el)el.style.display='none';}
+function show(id){const el=byId(id);if(el)el.style.display='flex';}
+function fmt(n){return parseFloat(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function now(){return new Date().toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+// PWA INSTALL
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  setTimeout(()=>{if(deferredPrompt)showInstall();},3000);
+});
+function showInstall(){
+  const b=byId('installBanner'); if(b){b.innerHTML=`<div style="font-size:28px">⚡</div><div style="flex:1"><div style="font-size:14px;font-weight:700;">Install QuickTop</div><div style="font-size:12px;color:var(--text2);">Add to home screen</div></div><button onclick="installApp()" style="background:var(--accent);color:#0A0F1E;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Install</button><button onclick="byId('installBanner').classList.remove('show')" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">×</button>`;b.classList.add('show');}
+}
+window.installApp=async function(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;byId('installBanner')?.classList.remove('show');}
+
+// SW
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
