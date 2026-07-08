@@ -587,17 +587,45 @@ const PREFIX = {
 
 // AUTH STATE
 onAuthStateChanged(auth, async (user) => {
+
+  console.log("1");
+
   hide('loader');
+
+  console.log("2");
+
   if(user){
+
+    console.log("3");
+
     currentUser = user;
+
     await loadProfile();
+
+    console.log("4");
+
     enterApp();
-  } else {
+
+    console.log("5");
+
+  }else{
+
+    console.log("6");
+
     currentUser = null;
     userProfile = null;
-    if(!localStorage.getItem('qt_ob')) showOb();
-    else showAuth('loginScreen');
+
+    if(!localStorage.getItem('qt_ob')){
+      console.log("7");
+      showOb();
+    }else{
+      console.log("8");
+      showAuth('loginScreen');
+    }
+
+    console.log("9");
   }
+
 });
 
 // FIREBASE HELPERS
