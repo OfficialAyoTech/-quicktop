@@ -677,75 +677,31 @@ window.showAuth = function(id){
 }
 
 window.doLogin = async function(){
-  const email=val('loginEmail'), pass=val('loginPass');
-  byId('loginErr').textContent='';
-  if(!email){byId('loginErr').textContent='Enter email';return;}
-  if(!pass){byId('loginErr').textContent='Enter password';return;}
-  const btn=byId('loginBtn'); btn.textContent='Signing in...'; btn.disabled=true;
-  try{
-    const c=await signInWithEmailAndPassword(auth,email,pass);
-    currentUser=c.user; await loadProfile(); hide('loader'); enterApp();
-  }catch(e){
-    byId('loginErr').textContent=e.code==='auth/invalid-credential'?'Wrong email or password':e.message;
-    btn.textContent='Sign In'; btn.disabled=false;
-  }
-}
-
-window.doSignup = async function(){
-  const name=val('sigName'),phone=val('sigPhone'),email=val('sigEmail'),pass=val('sigPass'),confirm=val('sigConfirm');
-  byId('sigErr').textContent='';
-  if(!name){byId('sigErr').textContent='Enter full name';return;}
-  if(!phone||phone.length<10){byId('sigErr').textContent='Enter valid phone';return;}
-  if(!email){byId('sigErr').textContent='Enter email';return;}
-  if(!pass||pass.length<6){byId('sigErr').textContent='Password min 6 chars';return;}
-  if(pass!==confirm){byId('sigErr').textContent='Passwords do not match';return;}
-  const btn=byId('sigBtn'); btn.textContent='Creating...'; btn.disabled=true;
-  try{
-    const c=await createUserWithEmailAndPassword(auth,email,pass);
-    await setDoc(doc(db,'users',c.user.uid),{name,phone,email,balance:0,createdAt:new Date().toISOString()});
-    currentUser=c.user; await loadProfile(); enterApp();
-  }catch(e){
-    byId('sigErr').textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
-    btn.textContent='Create Account'; btn.disabled=false;
-  }
-}
-
-window.googleSignIn = async function(){
-  try{
-    showProc('Connecting Google...','Please wait');
-    const r=await signInWithPopup(auth,gProvider);
-    currentUser=r.user; await loadProfile(); hideProc(); enterApp();
-  }catch(e){
-    hideProc();
-    if(e.code==='auth/popup-closed-by-user') toast('Sign in cancelled');
-    else toast('Google sign in failed');
-  }
-}
-
-window.doLogin = async function () {
-  const email = val('logEmail'),
-        pass = val('logPass');
+  const email = val('loginEmail'),
+        pass = val('loginPass');
 
   byId('loginErr').textContent = '';
 
-  if (!email || !pass) {
-    byId('loginErr').textContent = 'Enter email and password';
+  if(!email){
+    byId('loginErr').textContent = 'Enter email';
     return;
   }
 
-  const btn = byId('logBtn');
-  btn.textContent = 'Signing In...';
+  if(!pass){
+    byId('loginErr').textContent = 'Enter password';
+    return;
+  }
+
+  const btn = byId('loginBtn');
+  btn.textContent = 'Signing in...';
   btn.disabled = true;
 
-  try {
+  try{
 
-    const c = await signInWithEmailAndPassword(auth, email, pass);
+    const c = await signInWithEmailAndPassword(auth,email,pass);
 
     currentUser = c.user;
 
-    // ===========================
-    // GET FIREBASE ID TOKEN
-    // ===========================
     const token = await currentUser.getIdToken();
     console.log("🔥 Firebase ID Token:");
     console.log(token);
@@ -756,7 +712,7 @@ window.doLogin = async function () {
 
     enterApp();
 
-  } catch (e) {
+  }catch(e){
 
     byId('loginErr').textContent =
       e.code === 'auth/invalid-credential'
