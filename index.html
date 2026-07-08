@@ -722,215 +722,48 @@ window.googleSignIn = async function(){
   }
 }
 
-window.doLogout = async function(){
-  await signOut(auth);
-  hide('nav');
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  showAuth('loginScreen');
+window.doLogin = async function () {
+  const email = val('logEmail'),
+        pass = val('logPass');
+
+  byId('loginErr').textContent = '';
+
+  if (!email || !pass) {
+    byId('loginErr').textContent = 'Enter email and password';
+    return;
+  }
+
+  const btn = byId('logBtn');
+  btn.textContent = 'Signing In...';
+  btn.disabled = true;
+
+  try {
+
+    const c = await signInWithEmailAndPassword(auth, email, pass);
+
+    currentUser = c.user;
+
+    // ===========================
+    // GET FIREBASE ID TOKEN
+    // ===========================
+    const token = await currentUser.getIdToken();
+    console.log("🔥 Firebase ID Token:");
+    console.log(token);
+
+    await loadProfile();
+
+    hide('loader');
+
+    enterApp();
+
+  } catch (e) {
+
+    byId('loginErr').textContent =
+      e.code === 'auth/invalid-credential'
+        ? 'Wrong email or password'
+        : e.message;
+
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+  }
 }
-
-// NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null};
-window.goTo = function(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  byId(id).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const nid=NAVMAP[id]; if(nid) byId(nid)?.classList.add('active');
-  if(id==='dataScreen') renderPlans();
-  if(id==='historyScreen') renderHistoryTx();
-  if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
-  window.scrollTo(0,0);
-}
-
-// NETWORK
-window.pickNet = function(el,type){
-  el.closest('.net-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();}
-  else airtimeNet=el.dataset.net;
-}
-
-window.autoNet = function(phone,type){
-  if(phone.length<4) return;
-  const net=PREFIX[phone.substring(0,5)]||PREFIX[phone.substring(0,4)];
-  if(!net) return;
-  const screen = type==='data'?'dataScreen':'airtimeScreen';
-  byId(screen).querySelectorAll('.net-pill').forEach(p=>{
-    p.classList.remove('active');
-    if(p.dataset.net===net) p.classList.add('active');
-  });
-  if(type==='data'){dataNet=net;selPlan=null;renderPlans();}
-  else airtimeNet=net;
-  const badge = byId(type==='data'?'dataBadge':'airtimeBadge');
-  const dots={MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
-  badge.textContent=(dots[net]||'📶')+' '+net+' detected';
-  badge.style.display='block';
-  toast('📶 '+net+' detected');
-}
-
-// PLANS
-function renderPlans(){
-  const plans=PLANS[dataNet]||[];
-  byId('plansGrid').innerHTML=plans.map((p,i)=>`
-    <div class="plan-card ${selPlan===i?'selected':''}" onclick="pickPlan(${i})">
-      <div class="plan-size">${p.s}</div>
-      <div class="plan-val">${p.v}</div>
-      <div class="plan-price">₦${p.p.toLocaleString()}</div>
-    </div>`).join('');
-}
-window.pickPlan=function(i){selPlan=i;renderPlans();}
-window.setAmt=function(a){byId('airtimeAmt').value=a;}
-
-// BUY DATA
-window.buyData = async function(){
-  const phone=val('dataPhone');
-  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
-  if(selPlan===null){toast('Select a data plan');return;}
-  const plan=PLANS[dataNet][selPlan];
-  if((userProfile.balance||0)<plan.p){toast('Insufficient balance. Fund wallet first.');return;}
-  const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
-  showProc('Buying Data...','Sending '+plan.s+' to '+phone);
-  try{
-    const ref='QT'+Date.now();
-    const res=await fetch(`${BACKEND}/data?network=${NETS[dataNet]}&plan=${plan.c}&phone=${phone}&ref=${ref}`);
-    const data=await res.json();
-    btn.textContent='Buy Data'; btn.disabled=false; hideProc();
-    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
-    if(ok){
-      await saveBal((userProfile.balance||0)-plan.p);
-      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
-    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
-  }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
-}
-
-// BUY AIRTIME
-window.buyAirtime = async function(){
-  const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
-  if(!phone||phone.length<10){toast('Enter valid phone number');return;}
-  if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
-  if((userProfile.balance||0)<amount){toast('Insufficient balance. Fund wallet first.');return;}
-  const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
-  showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
-  try{
-    const ref='QT'+Date.now();
-    const res=await fetch(`${BACKEND}/airtime?network=${NETS[airtimeNet]}&amount=${amount}&phone=${phone}&ref=${ref}`);
-    const data=await res.json();
-    btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
-    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
-    if(ok){
-      await saveBal((userProfile.balance||0)-amount);
-      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
-    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
-  }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
-}
-
-// FUND
-window.showFund=function(){byId('fundModal').classList.add('show');}
-window.closeFund=function(){byId('fundModal').classList.remove('show');}
-
-// SUCCESS
-function showSuccess(title,msg,rows){
-  byId('sucTitle').textContent=title; byId('sucMsg').textContent=msg;
-  byId('sucCard').innerHTML=rows.map(r=>`<div class="success-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
-  goTo('successScreen');
-}
-
-// UI
-function updateWalletUI(){
-  const b=userProfile?.balance||0;
-  byId('walletBal').textContent=fmt(b);
-  byId('profBal').textContent=fmt(b);
-}
-
-function renderHomeTx(){
-  const el=byId('homeTx');
-  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.<br>Buy data or airtime to get started.</p></div>';return;}
-  el.innerHTML=txList.slice(0,5).map(txHTML).join('');
-}
-
-function renderHistoryTx(){
-  const el=byId('historyTx');
-  if(!txList.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>No transactions yet.</p></div>';return;}
-  el.innerHTML=txList.map(txHTML).join('');
-}
-
-function txHTML(tx){
-  const icons={data:'📶',airtime:'📞',fund:'💰'};
-  const debit=tx.type!=='fund';
-  const label=tx.type==='data'?`${tx.network} ${tx.plan} → ${tx.phone}`:tx.type==='airtime'?`${tx.network} Airtime → ${tx.phone}`:'Wallet Funded';
-  return `<div class="tx-item"><div class="tx-icon ${tx.type}">${icons[tx.type]}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${tx.date||''}</div></div><div class="tx-amt ${debit?'debit':'credit'}">${debit?'-':'+'}₦${tx.amount.toLocaleString()}</div></div>`;
-}
-
-// THEME
-function initTheme(){
-  const saved=localStorage.getItem('qt_theme');
-  if(saved==='light'){document.body.classList.add('light');updateThemeUI(true);}
-}
-window.toggleTheme=function(){
-  const isLight=document.body.classList.toggle('light');
-  localStorage.setItem('qt_theme',isLight?'light':'dark');
-  updateThemeUI(isLight);
-  toast(isLight?'☀️ Light mode on':'🌙 Dark mode on');
-}
-function updateThemeUI(light){
-  byId('themeIcon').textContent=light?'☀️':'🌙';
-  byId('themeLabel').textContent=light?'Switch to Dark Mode':'Switch to Light Mode';
-  byId('themeSub').textContent=light?'Currently light mode':'Currently dark mode';
-}
-
-// EYE TOGGLE
-window.toggleEye=function(id,btn){
-  const inp=byId(id);
-  inp.type=inp.type==='password'?'text':'password';
-  btn.textContent=inp.type==='password'?'👁️':'🙈';
-}
-
-// PROCESSING
-function showProc(t,s){byId('procTitle').textContent=t;byId('procSub').textContent=s;byId('processing').classList.add('show');}
-function hideProc(){byId('processing').classList.remove('show');}
-
-// TOAST
-window.toast=function(msg){
-  const t=byId('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
-}
-
-// BACKEND PING
-function pingBackend(){fetch(BACKEND+'/').catch(()=>{});}
-
-// OFFLINE DETECTION
-if(!navigator.onLine){
-  byId('loader').style.display='none';
-  const off=byId('offlineMsg'); off.style.display='flex';
-}
-window.addEventListener('online',()=>location.reload());
-window.addEventListener('offline',()=>{byId('offlineMsg').style.display='flex';});
-
-// HELPERS
-function byId(id){return document.getElementById(id);}
-function val(id){return (byId(id)?.value||'').trim();}
-function hide(id){const el=byId(id);if(el)el.style.display='none';}
-function show(id){const el=byId(id);if(el)el.style.display='flex';}
-function fmt(n){return parseFloat(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function now(){return new Date().toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
-
-// PWA INSTALL
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault(); deferredPrompt=e;
-  setTimeout(()=>{if(deferredPrompt)showInstall();},3000);
-});
-function showInstall(){
-  const b=byId('installBanner'); if(b){b.innerHTML=`<div style="font-size:28px">⚡</div><div style="flex:1"><div style="font-size:14px;font-weight:700;">Install QuickTop</div><div style="font-size:12px;color:var(--text2);">Add to home screen</div></div><button onclick="installApp()" style="background:var(--accent);color:#0A0F1E;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Install</button><button onclick="byId('installBanner').classList.remove('show')" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">×</button>`;b.classList.add('show');}
-}
-window.installApp=async function(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;byId('installBanner')?.classList.remove('show');}
-
-// SW
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-}
-</script>
-</body>
-</html>
