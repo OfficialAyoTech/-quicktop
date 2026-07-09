@@ -525,6 +525,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+window.auth = auth;
+
 const db = getFirestore(app);
 const gProvider = new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:'select_account'});
