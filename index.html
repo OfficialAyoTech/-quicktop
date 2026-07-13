@@ -541,7 +541,32 @@ let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtim
 
 // BACKEND
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
-const NETS = {MTN:'01',Airtel:'04',Glo:'02','9mobile':'03'};
+async function api(path, options = {}) {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("User is not logged in");
+  }
+
+  const token = await user.getIdToken();
+
+  const response = await fetch(`${BACKEND}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      ...(options.headers || {})
+    }
+  });
+
+  return response;
+}
+const NETS = {
+  MTN: 'MTN',
+  Airtel: 'AIRTEL',
+  Glo: 'GLO',
+  '9mobile': '9MOBILE'
+};
 
 // DATA PLANS
 const PLANS = {
@@ -595,8 +620,14 @@ const PREFIX = {
 // AUTH STATE
 onAuthStateChanged(auth, async (user) => {
   hide('loader');
-  if(user){
+
+  if (user) {
     currentUser = user;
+
+    const token = await user.getIdToken(true);
+    console.log("========== FIREBASE TOKEN ==========");
+    console.log(token);
+
     await loadProfile();
     enterApp();
   } else {
@@ -794,15 +825,27 @@ window.buyData = async function(){
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
   if(selPlan===null){toast('Select a data plan');return;}
   const plan=PLANS[dataNet][selPlan];
-  if((userProfile.balance||0)<plan.p){toast('Insufficient balance. Fund wallet first.');return;}
+  // if((userProfile.balance||0)<plan.p){
+//     toast('Insufficient balance. Fund wallet first.');
+//     return;
+// }
   const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
-    const ref='QT'+Date.now();
-    const res=await fetch(`${BACKEND}/data?network=${NETS[dataNet]}&plan=${plan.c}&phone=${phone}&ref=${ref}`);
-    const data=await res.json();
+   const ref = 'QT' + Date.now();
+
+const res = await api('/api/data/buy-data', {
+    method: 'POST',
+    body: JSON.stringify({
+        network: NETS[dataNet],
+        phone,
+        plan: plan.c
+    })
+});
+
+const data = await res.json();
     btn.textContent='Buy Data'; btn.disabled=false; hideProc();
-    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
+    const ok = data.success === true;
     if(ok){
       await saveBal((userProfile.balance||0)-plan.p);
       await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
@@ -816,15 +859,27 @@ window.buyAirtime = async function(){
   const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
   if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
-  if((userProfile.balance||0)<amount){toast('Insufficient balance. Fund wallet first.');return;}
+  // if((userProfile.balance||0)<amount){
+//     toast('Insufficient balance. Fund wallet first.');
+//     return;
+// }
   const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
   try{
-    const ref='QT'+Date.now();
-    const res=await fetch(`${BACKEND}/airtime?network=${NETS[airtimeNet]}&amount=${amount}&phone=${phone}&ref=${ref}`);
-    const data=await res.json();
+    const ref = 'QT' + Date.now();
+
+const res = await api('/api/airtime/purchase', {
+    method: 'POST',
+    body: JSON.stringify({
+        network: NETS[airtimeNet],
+        phone,
+        amount
+    })
+});
+
+const data = await res.json();
     btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
-    const ok=data?.status==='successful'||data?.OrderStatus==='SUCCESSFUL'||data?.response_description==='TRANSACTION SUCCESSFUL';
+    const ok = data.success === true;
     if(ok){
       await saveBal((userProfile.balance||0)-amount);
       await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
