@@ -1,7 +1,7 @@
-const CACHE_NAME = 'quicktop-v1';
+const CACHE_NAME = 'quicktop-v2';
 const ASSETS = [
-  '/',
-  '/index.html'
+  './',
+  './index.html'
 ];
 
 self.addEventListener('install', e => {
