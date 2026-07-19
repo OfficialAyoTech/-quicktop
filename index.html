@@ -1058,7 +1058,7 @@ window.fundWallet = async function(){
           if(vData.success === true){
             const newBalance = Number(vData.data.wallet.balance);
             await saveBal(newBalance);
-            await saveTx({type:'funding', amount:Number(vData.data.amount), ref:response.reference, ts:Date.now(), date:now()});
+            await saveTx({type:'fund', amount:Number(vData.data.amount), ref:response.reference, ts:Date.now(), date:now()});
             closeFund();
             byId('fundAmt').value = '';
             showSuccess('Wallet Funded! ✅','₦'+Number(vData.data.amount).toLocaleString()+' added to your wallet',[['Amount','₦'+Number(vData.data.amount).toLocaleString()],['Reference',response.reference],['Status','✅ Successful'],['Wallet Balance','₦'+newBalance.toLocaleString()]]);
