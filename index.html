@@ -492,9 +492,18 @@ select option{background:var(--surface);}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Fund Your Wallet</div>
-    <div class="info-box warn">⚠️ <strong>Coming Soon!</strong> For now contact us on WhatsApp to fund your wallet manually.</div>
-    <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20want%20to%20fund%20my%20wallet" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;border-radius:12px;padding:14px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:12px;">💬 Chat on WhatsApp</a>
-    <p style="font-size:12px;color:var(--text2);text-align:center;">Send payment proof → We credit within minutes</p>
+    <div class="input-stack">
+      <label>Amount (₦)</label>
+      <input type="number" id="fundAmt" placeholder="e.g. 1000" min="100" inputmode="numeric"/>
+    </div>
+    <div class="quick-amounts">
+      <div class="amt-btn" onclick="setFundAmt(500)">₦500</div>
+      <div class="amt-btn" onclick="setFundAmt(1000)">₦1,000</div>
+      <div class="amt-btn" onclick="setFundAmt(2000)">₦2,000</div>
+      <div class="amt-btn" onclick="setFundAmt(5000)">₦5,000</div>
+    </div>
+    <button class="btn btn-primary" id="fundBtn" style="width:100%;margin-top:14px;" onclick="fundWallet()">Pay with Paystack</button>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;">Secured by Paystack • Minimum ₦100</p>
   </div>
 </div>
 
@@ -518,6 +527,7 @@ select option{background:var(--surface);}
   <div class="nav-item" id="navProfile" onclick="goTo('profileScreen')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div><div class="nav-dot"></div></div>
 </div>
 
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -641,33 +651,85 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // FIREBASE HELPERS
-async function loadProfile(){
-  const ref = doc(db,'users',currentUser.uid);
-  const snap = await getDoc(ref);
-  if(snap.exists()) userProfile = snap.data();
-  else {
-    userProfile = {name:currentUser.displayName||'User',email:currentUser.email,phone:'',balance:0,createdAt:new Date().toISOString()};
-    await setDoc(ref,userProfile);
+async function loadProfile() {
+
+  try {
+
+    // Ensure the logged-in Firebase user exists in PostgreSQL
+    await api("/api/auth/sync-user", {
+      method: "POST"
+    });
+
+    // Load wallet from backend
+    const response = await api("/api/wallet");
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    userProfile = {
+      name: currentUser.displayName || "User",
+      email: currentUser.email,
+      phone: "",
+      balance: Number(result.data.balance),
+      currency: result.data.currency,
+      createdAt: result.data.created_at
+    };
+
+    updateWalletUI();
+
+  } catch (error) {
+
+    console.error("loadProfile()", error);
+
+    toast(error.message || "Unable to load wallet");
+
   }
+
 }
 
-async function saveBal(b){
-  userProfile.balance=b;
-  await updateDoc(doc(db,'users',currentUser.uid),{balance:b});
-  updateWalletUI();
+async function saveBal(balance) {
+
+    userProfile.balance = Number(balance);
+
+    updateWalletUI();
+
 }
 
-async function saveTx(tx){
-  await addDoc(collection(db,'users',currentUser.uid,'transactions'),tx);
-  txList.unshift(tx);
-  renderHomeTx();
+async function saveTx(tx) {
+
+    txList.unshift(tx);
+
+    renderHomeTx();
+
 }
 
-async function loadTx(){
-  const q = query(collection(db,'users',currentUser.uid,'transactions'),orderBy('ts','desc'),limit(20));
-  const snap = await getDocs(q);
-  txList = snap.docs.map(d=>d.data());
-  renderHomeTx();
+async function loadTx() {
+
+  try {
+
+    const response = await api("/api/transactions");
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    txList = result.data;
+
+    renderHomeTx();
+
+  } catch (error) {
+
+    console.error("loadTx()", error);
+
+    toast(error.message || "Unable to load transactions");
+
+  }
+
 }
 
 // APP
@@ -742,7 +804,68 @@ window.doSignup = async function(){
   const btn=byId('sigBtn'); btn.textContent='Creating...'; btn.disabled=true;
   try{
     const c=await createUserWithEmailAndPassword(auth,email,pass);
-    await setDoc(doc(db,'users',c.user.uid),{name,phone,email,balance:0,createdAt:new Date().toISOString()});
+    window.doSignup = async function(){
+
+  const name = val('sigName');
+  const phone = val('sigPhone');
+  const email = val('sigEmail');
+  const pass = val('sigPass');
+  const confirm = val('sigConfirm');
+
+  byId('sigErr').textContent='';
+
+  if(!name){
+    byId('sigErr').textContent='Enter full name';
+    return;
+  }
+
+  if(!phone || phone.length < 10){
+    byId('sigErr').textContent='Enter valid phone';
+    return;
+  }
+
+  if(!email){
+    byId('sigErr').textContent='Enter email';
+    return;
+  }
+
+  if(!pass || pass.length < 6){
+    byId('sigErr').textContent='Password min 6 chars';
+    return;
+  }
+
+  if(pass !== confirm){
+    byId('sigErr').textContent='Passwords do not match';
+    return;
+  }
+
+  const btn = byId('sigBtn');
+  btn.textContent='Creating...';
+  btn.disabled=true;
+
+  try{
+
+    const c = await createUserWithEmailAndPassword(auth,email,pass);
+
+    currentUser = c.user;
+
+    await loadProfile();
+
+    enterApp();
+
+  }catch(e){
+
+    byId('sigErr').textContent =
+      e.code === 'auth/email-already-in-use'
+      ? 'Email already registered'
+      : e.message;
+
+    btn.textContent='Create Account';
+    btn.disabled=false;
+
+  }
+
+}
     currentUser=c.user; await loadProfile(); enterApp();
   }catch(e){
     byId('sigErr').textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
@@ -893,6 +1016,73 @@ const data = await res.json();
 // FUND
 window.showFund=function(){byId('fundModal').classList.add('show');}
 window.closeFund=function(){byId('fundModal').classList.remove('show');}
+window.setFundAmt=function(a){byId('fundAmt').value=a;}
+
+window.fundWallet = async function(){
+  const amount = parseInt(val('fundAmt'));
+  if(!amount || amount < 100){ toast('Minimum funding amount is ₦100'); return; }
+
+  const btn = byId('fundBtn');
+  btn.textContent = 'Processing...'; btn.disabled = true;
+  showProc('Initializing Payment...','Setting up your secure payment');
+
+  try{
+    const res = await api('/api/payments/initialize', {
+      method: 'POST',
+      body: JSON.stringify({ amount })
+    });
+    const data = await res.json();
+    hideProc();
+
+    if(data.success !== true || !data.data?.access_code){
+      btn.textContent = 'Pay with Paystack'; btn.disabled = false;
+      toast('❌ ' + (data?.message || 'Unable to start payment. Try again.'));
+      return;
+    }
+
+    const accessCode = data.data.access_code;
+    const popup = new PaystackPop();
+
+    popup.resumeTransaction(accessCode, {
+      onSuccess: async (response) => {
+        showProc('Verifying Payment...','Please wait, do not close');
+        try{
+          const vRes = await api('/api/payments/verify', {
+            method: 'POST',
+            body: JSON.stringify({ reference: response.reference })
+          });
+          const vData = await vRes.json();
+          hideProc();
+          btn.textContent = 'Pay with Paystack'; btn.disabled = false;
+
+          if(vData.success === true){
+            const newBalance = Number(vData.data.wallet.balance);
+            await saveBal(newBalance);
+            await saveTx({type:'funding', amount:Number(vData.data.amount), ref:response.reference, ts:Date.now(), date:now()});
+            closeFund();
+            byId('fundAmt').value = '';
+            showSuccess('Wallet Funded! ✅','₦'+Number(vData.data.amount).toLocaleString()+' added to your wallet',[['Amount','₦'+Number(vData.data.amount).toLocaleString()],['Reference',response.reference],['Status','✅ Successful'],['Wallet Balance','₦'+newBalance.toLocaleString()]]);
+          } else {
+            toast('❌ ' + (vData?.message || 'Payment verification failed. Contact support with your reference: ' + response.reference));
+          }
+        }catch(e){
+          hideProc();
+          btn.textContent = 'Pay with Paystack'; btn.disabled = false;
+          toast('Network error verifying payment. Save this reference and contact support: ' + response.reference);
+        }
+      },
+      onCancel: () => {
+        btn.textContent = 'Pay with Paystack'; btn.disabled = false;
+        toast('Payment cancelled');
+      }
+    });
+
+  }catch(e){
+    hideProc();
+    btn.textContent = 'Pay with Paystack'; btn.disabled = false;
+    toast('Network error. Try again.');
+  }
+}
 
 // SUCCESS
 function showSuccess(title,msg,rows){
