@@ -1058,7 +1058,7 @@ window.fundWallet = async function(){
           if(vData.success === true){
             const newBalance = Number(vData.data.wallet.balance);
             await saveBal(newBalance);
-            await saveTx({type:'fund', amount:Number(vData.data.amount), ref:response.reference, ts:Date.now(), date:now()});
+            await loadTx();
             closeFund();
             byId('fundAmt').value = '';
             showSuccess('Wallet Funded! ✅','₦'+Number(vData.data.amount).toLocaleString()+' added to your wallet',[['Amount','₦'+Number(vData.data.amount).toLocaleString()],['Reference',response.reference],['Status','✅ Successful'],['Wallet Balance','₦'+newBalance.toLocaleString()]]);
@@ -1111,10 +1111,87 @@ function renderHistoryTx(){
 }
 
 function txHTML(tx){
-  const icons={data:'📶',airtime:'📞',fund:'💰'};
-  const debit=tx.type!=='fund';
-  const label=tx.type==='data'?`${tx.network} ${tx.plan} → ${tx.phone}`:tx.type==='airtime'?`${tx.network} Airtime → ${tx.phone}`:'Wallet Funded';
-  return `<div class="tx-item"><div class="tx-icon ${tx.type}">${icons[tx.type]}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${tx.date||''}</div></div><div class="tx-amt ${debit?'debit':'credit'}">${debit?'-':'+'}₦${tx.amount.toLocaleString()}</div></div>`;
+
+    const service = (tx.service || "").toLowerCase();
+
+    let type = "fund";
+
+    if(service.includes("airtime")){
+        type = "airtime";
+    }
+    else if(service.includes("data")){
+        type = "data";
+    }
+    else if(service.includes("wallet")){
+        type = "fund";
+    }
+    else if(service.includes("transfer")){
+        type = "transfer";
+    }
+
+    const icons = {
+        airtime: "📞",
+        data: "📶",
+        fund: "💰",
+        transfer: "💸"
+    };
+
+    const credit =
+        service.includes("wallet") ||
+        service.includes("fund");
+
+    let label = "";
+
+    if(type === "airtime"){
+
+        label = `${tx.network || ""} Airtime → ${tx.phone || ""}`;
+
+    }
+    else if(type === "data"){
+
+        label = `${tx.network || ""} Data → ${tx.phone || ""}`;
+
+    }
+    else if(type === "fund"){
+
+        label = "Wallet Funding";
+
+    }
+    else{
+
+        label = tx.narration || "Wallet Transfer";
+
+    }
+
+    const amount = Number(tx.amount || 0);
+
+    const date = tx.created_at
+        ? new Date(tx.created_at).toLocaleString("en-NG",{
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        })
+        : "";
+
+    return `
+    <div class="tx-item">
+
+        <div class="tx-icon ${type}">
+            ${icons[type]}
+        </div>
+
+        <div class="tx-info">
+            <div class="tx-name">${label}</div>
+            <div class="tx-date">${date}</div>
+        </div>
+
+        <div class="tx-amt ${credit ? "credit" : "debit"}">
+            ${credit ? "+" : "-"}₦${amount.toLocaleString()}
+        </div>
+
+    </div>`;
 }
 
 // THEME
