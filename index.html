@@ -974,10 +974,11 @@ window.buyData = async function(){
 const res = await api('/api/data/buy-data', {
     method: 'POST',
     body: JSON.stringify({
-        network: NETS[dataNet],
-        phone,
-        plan: plan.c
-    })
+    network: NETS[dataNet],
+    phone,
+    plan: plan.c,
+    amount: plan.p
+})
 });
 
 const data = await res.json();
@@ -1188,6 +1189,67 @@ function txHTML(tx){
   const label=type==='data'?`${network} Data${tx.plan?' '+tx.plan:''} → ${tx.phone||''}`:type==='airtime'?`${network} Airtime → ${tx.phone||''}`:'Wallet Funded';
   const amt=Number(tx.amount)||0;
   return `<div class="tx-item" onclick="showTxDetails('${txRef(tx)}')"><div class="tx-icon ${type}">${icons[type]}</div><div class="tx-info"><div class="tx-name">${label}</div><div class="tx-date">${txDateStr(tx)}</div></div><div class="tx-amt ${debit?'debit':'credit'}">${debit?'-':'+'}₦${amt.toLocaleString()}</div></div>`;
+}
+
+function showTxDetails(reference){
+
+    const tx = txList.find(
+        t => txRef(t) === reference
+    );
+
+    if(!tx){
+        toast("Transaction not found");
+        return;
+    }
+
+    const type = txType(tx);
+
+    byId("txIcon").textContent =
+        type === "airtime" ? "📞" :
+        type === "data" ? "📶" : "💰";
+
+    byId("txTitle").textContent =
+        type === "airtime"
+            ? "Airtime Purchase"
+            : type === "data"
+            ? "Data Purchase"
+            : "Wallet Funding";
+
+    byId("txMsg").textContent = tx.status || "Successful";
+
+    byId("txCard").innerHTML = `
+        <div class="success-row">
+            <span>Amount</span>
+            <span>₦${Number(tx.amount).toLocaleString()}</span>
+        </div>
+
+        <div class="success-row">
+            <span>Network</span>
+            <span>${tx.network || "-"}</span>
+        </div>
+
+        <div class="success-row">
+            <span>Phone</span>
+            <span>${tx.phone || "-"}</span>
+        </div>
+
+        <div class="success-row">
+            <span>Reference</span>
+            <span>${txRef(tx)}</span>
+        </div>
+
+        <div class="success-row">
+            <span>Status</span>
+            <span>${tx.status || "Successful"}</span>
+        </div>
+
+        <div class="success-row">
+            <span>Date</span>
+            <span>${txDateStr(tx)}</span>
+        </div>
+    `;
+
+    goTo("txDetailScreen");
 }
 
 // THEME
