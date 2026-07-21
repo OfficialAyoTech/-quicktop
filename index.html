@@ -906,7 +906,7 @@ window.doLogout = async function(){
 
 // NAVIGATION
 const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null};
-window.goTo = function(id){
+window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -915,7 +915,13 @@ window.goTo = function(id){
   if(id==='historyScreen') renderHistoryTx();
   if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
   window.scrollTo(0,0);
+  if(!fromPop) history.pushState({screen:id}, '', '');
 }
+
+window.addEventListener('popstate', function(e){
+  const screen = (e.state && e.state.screen) || 'homeScreen';
+  goTo(screen, true);
+});
 
 // NETWORK
 window.pickNet = function(el,type){
