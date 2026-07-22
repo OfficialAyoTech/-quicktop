@@ -402,6 +402,12 @@ select option{background:var(--surface);}
     </div>
     <div class="net-badge" id="dataBadge"></div>
     <div class="section-title" style="padding:0 0 12px;">Choose Plan</div>
+    <div class="net-pills" id="planFilterTabs" style="margin-bottom:14px;">
+      <div class="net-pill active" data-filter="All" onclick="setPlanFilter('All',this)">All</div>
+      <div class="net-pill" data-filter="Daily" onclick="setPlanFilter('Daily',this)">Daily</div>
+      <div class="net-pill" data-filter="Weekly" onclick="setPlanFilter('Weekly',this)">Weekly</div>
+      <div class="net-pill" data-filter="Monthly" onclick="setPlanFilter('Monthly',this)">Monthly</div>
+    </div>
     <div class="plans-grid" id="plansGrid"></div>
     <button class="btn btn-primary" id="dataBuyBtn" onclick="buyData()">Buy Data</button>
   </div>
@@ -950,8 +956,24 @@ window.autoNet = function(phone,type){
 }
 
 // PLANS
+let planFilter = 'All';
+
+function planCategory(p){
+  const v=(p.v||'').toLowerCase(), s=(p.s||'').toLowerCase();
+  if(v.includes('30 day')||v.includes('month')||s.includes('monthly')) return 'Monthly';
+  if(v.includes('7 day')||v.includes('week')||s.includes('weekly')) return 'Weekly';
+  return 'Daily';
+}
+
+window.setPlanFilter=function(f,el){
+  planFilter=f;
+  document.querySelectorAll('#planFilterTabs .net-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderPlans();
+}
+
 function renderPlans(){
-  const plans=PLANS[dataNet]||[];
+  const plans=(PLANS[dataNet]||[]).filter(p=>planFilter==='All'||planCategory(p)===planFilter);
   byId('plansGrid').innerHTML=plans.map((p,i)=>`
     <div class="plan-card ${selPlan===i?'selected':''}" onclick="pickPlan(${i})">
       <div class="plan-size">${p.s}</div>
