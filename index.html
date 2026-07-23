@@ -997,7 +997,6 @@ window.buyData = async function(){
   const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
-   const ref = 'QT' + Date.now();
 
 const res = await api('/api/data/buy-data', {
     method: 'POST',
@@ -1010,13 +1009,30 @@ const res = await api('/api/data/buy-data', {
 });
 
 const data = await res.json();
+const ref = data.reference;
+console.log("BUY DATA RESPONSE:", data);
     btn.textContent='Buy Data'; btn.disabled=false; hideProc();
     const ok = data.success === true;
     if(ok){
       await saveBal((userProfile.balance||0)-plan.p);
-      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
-    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+      await saveTx({
+    type: 'data',
+    network: dataNet,
+    phone,
+    plan: plan.s,
+    amount: plan.p,
+    ref: data.reference,
+    ts: Date.now(),
+    date: now()
+});
+      showSuccess(
+    data.message,''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+    } else {
+    toast("❌ " + (data.message || "Transaction failed"));
+
+    console.log("DATA PURCHASE FAILED");
+    console.log(data);
+}
   }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
 
@@ -1032,7 +1048,6 @@ window.buyAirtime = async function(){
   const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
   try{
-    const ref = 'QT' + Date.now();
 
 const res = await api('/api/airtime/purchase', {
     method: 'POST',
@@ -1044,13 +1059,39 @@ const res = await api('/api/airtime/purchase', {
 });
 
 const data = await res.json();
+const ref = data.reference;
+
+console.log("BUY AIRTIME RESPONSE:", data);
     btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
     const ok = data.success === true;
     if(ok){
       await saveBal((userProfile.balance||0)-amount);
-      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
-    } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
+      await saveTx({
+    type: 'airtime',
+    network: airtimeNet,
+    phone,
+    amount,
+    ref: data.reference,
+    ts: Date.now(),
+    date: now()
+});
+      showSuccess(
+    data.message,
+    '₦' + amount.toLocaleString() + ' ' + airtimeNet + ' airtime sent to ' + phone,
+    [
+        ['Network', airtimeNet],
+        ['Phone', phone],
+        ['Amount', '₦' + amount.toLocaleString()],
+        ['Ref', data.reference],
+        ['Status', '✅ Successful']
+    ]
+);
+    } else {
+    toast("❌ " + (data.message || "Transaction failed"));
+
+    console.log("AIRTIME PURCHASE FAILED");
+    console.log(data);
+}
   }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
 
