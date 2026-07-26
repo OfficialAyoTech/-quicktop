@@ -378,8 +378,9 @@ select option{background:var(--surface);}
     <div class="qa" onclick="goTo('dataScreen')"><span class="qa-icon">📶</span><div class="qa-label">Data</div></div>
     <div class="qa" onclick="goTo('airtimeScreen')"><span class="qa-icon">📞</span><div class="qa-label">Airtime</div></div>
     <div class="qa" onclick="goTo('cableScreen')"><span class="qa-icon">📺</span><div class="qa-label">Cable TV</div></div>
-    <div class="qa" onclick="toast('Coming soon!')"><span class="qa-icon">💡</span><div class="qa-label">Electricity</div></div>
-    <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎲</span><div class="qa-label">Betting & Airtime-to-Cash</div></div>
+    <div class="qa" onclick="goTo('electricityScreen')"><span class="qa-icon">💡</span><div class="qa-label">Electricity</div></div>
+    <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎲</span><div class="qa-label">Betting</div></div>
+    <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎁</span><div class="qa-label">Reward</div></div>
   </div>
   <div class="section-title">Recent Transactions</div>
   <div class="tx-list" id="homeTx"></div>
@@ -476,6 +477,49 @@ select option{background:var(--surface);}
     </div>
     <div class="info-box">📺 Confirm your smart card before subscribing — wrong numbers can't be refunded automatically.</div>
     <button class="btn btn-primary" id="cableBuyBtn" onclick="buyCable()">Subscribe</button>
+  </div>
+</div>
+
+<!-- ELECTRICITY -->
+<div class="screen" id="electricityScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Electricity</h2></div>
+  <div class="content">
+    <div class="section-title">Select Provider</div>
+    <div class="net-pills" id="electricityProviderPills">
+      <div class="net-pill active" data-provider="EKEDC" onclick="pickElectricityProvider('EKEDC',this)">Eko Electric</div>
+      <div class="net-pill" data-provider="IKEDC" onclick="pickElectricityProvider('IKEDC',this)">Ikeja Electric</div>
+      <div class="net-pill" data-provider="AEDC" onclick="pickElectricityProvider('AEDC',this)">Abuja Electric</div>
+      <div class="net-pill" data-provider="KEDCO" onclick="pickElectricityProvider('KEDCO',this)">Kano Electric</div>
+      <div class="net-pill" data-provider="PHED" onclick="pickElectricityProvider('PHED',this)">Port Harcourt Electric</div>
+      <div class="net-pill" data-provider="JED" onclick="pickElectricityProvider('JED',this)">Jos Electric</div>
+      <div class="net-pill" data-provider="IBEDC" onclick="pickElectricityProvider('IBEDC',this)">Ibadan Electric</div>
+      <div class="net-pill" data-provider="KAEDCO" onclick="pickElectricityProvider('KAEDCO',this)">Kaduna Electric</div>
+      <div class="net-pill" data-provider="EEDC" onclick="pickElectricityProvider('EEDC',this)">Enugu Electric</div>
+      <div class="net-pill" data-provider="BEDC" onclick="pickElectricityProvider('BEDC',this)">Benin Electric</div>
+      <div class="net-pill" data-provider="YEDC" onclick="pickElectricityProvider('YEDC',this)">Yola Electric</div>
+      <div class="net-pill" data-provider="APLE" onclick="pickElectricityProvider('APLE',this)">Aba Electric</div>
+    </div>
+    <div class="section-title">Meter Type</div>
+    <div class="net-pills" id="meterTypePills">
+      <div class="net-pill active" data-mt="PREPAID" onclick="pickMeterType('PREPAID',this)">Prepaid</div>
+      <div class="net-pill" data-mt="POSTPAID" onclick="pickMeterType('POSTPAID',this)">Postpaid</div>
+    </div>
+    <div class="input-stack">
+      <label>Meter Number</label>
+      <input type="text" id="meterNo" placeholder="Enter meter number" oninput="clearMeterVerify()"/>
+    </div>
+    <div id="meterVerifyResult"></div>
+    <button class="btn btn-outline" id="meterVerifyBtn" style="margin-bottom:14px;" onclick="verifyMeterAcct()">Verify Meter</button>
+    <div class="input-stack">
+      <label>Phone Number</label>
+      <input type="tel" id="electricityPhone" placeholder="080XXXXXXXX" maxlength="11"/>
+    </div>
+    <div class="input-stack">
+      <label>Amount (₦)</label>
+      <input type="number" id="electricityAmt" placeholder="Enter amount"/>
+    </div>
+    <div class="info-box">⚡ Confirm your meter number before purchasing — wrong numbers can't be refunded automatically.</div>
+    <button class="btn btn-primary" id="electricityBuyBtn" onclick="buyElectricity()">Buy Electricity</button>
   </div>
 </div>
 
@@ -602,7 +646,7 @@ const gProvider = new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:'select_account'});
 
 // STATE
-let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false;
+let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false;
 
 // BACKEND
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
@@ -972,7 +1016,7 @@ window.doLogout = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1206,6 +1250,95 @@ window.buyCable = async function(){
     }
   }catch(e){
     btn.textContent='Subscribe'; btn.disabled=false; hideProc();
+    toast('Network error. Try again.');
+  }
+}
+
+// ELECTRICITY
+window.pickElectricityProvider = function(provider, el){
+  document.querySelectorAll('#electricityProviderPills .net-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  electricityProvider = provider;
+  clearMeterVerify();
+}
+
+window.pickMeterType = function(type, el){
+  document.querySelectorAll('#meterTypePills .net-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  meterType = type;
+  clearMeterVerify();
+}
+
+window.clearMeterVerify = function(){
+  byId('meterVerifyResult').innerHTML = '';
+  meterVerified = false;
+}
+
+window.verifyMeterAcct = async function(){
+  const meterNo = val('meterNo');
+  if(!meterNo || meterNo.length<5){ toast('Enter a valid meter number'); return; }
+
+  const btn = byId('meterVerifyBtn');
+  btn.textContent='Verifying...'; btn.disabled=true;
+
+  try{
+    const res = await api('/api/electricity/verify', {
+      method:'POST',
+      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo })
+    });
+    const data = await res.json();
+    btn.textContent='Verify Meter'; btn.disabled=false;
+
+    if(data.success === true){
+      meterVerified = true;
+      const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
+      byId('meterVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified${name?': '+name:''}</div>`;
+    } else {
+      meterVerified = false;
+      byId('meterVerifyResult').innerHTML = '';
+      toast('❌ ' + (data?.message || 'Unable to verify meter'));
+    }
+  }catch(e){
+    btn.textContent='Verify Meter'; btn.disabled=false;
+    toast('Network error verifying meter');
+  }
+}
+
+window.buyElectricity = async function(){
+  if(!meterVerified){ toast('Please verify your meter number first'); return; }
+
+  const meterNo = val('meterNo');
+  const phone = val('electricityPhone');
+  const amount = parseInt(val('electricityAmt'));
+
+  if(!meterNo){ toast('Enter meter number'); return; }
+  if(!phone || phone.length<10){ toast('Enter valid phone number'); return; }
+  if(!amount || amount<=0){ toast('Enter a valid amount'); return; }
+
+  const btn = byId('electricityBuyBtn');
+  btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Processing Purchase...','Please wait, do not close');
+
+  try{
+    const ref = 'QT' + Date.now();
+    const res = await api('/api/electricity/purchase', {
+      method:'POST',
+      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo, amount, phone })
+    });
+    const data = await res.json();
+    btn.textContent='Buy Electricity'; btn.disabled=false; hideProc();
+    const ok = data.success === true;
+
+    if(ok){
+      await saveBal((userProfile.balance||0)-amount);
+      await saveTx({type:'electricity', network:electricityProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
+      showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']]);
+      byId('meterNo').value=''; byId('electricityAmt').value=''; clearMeterVerify();
+    } else {
+      toast('❌ ' + (data?.message || 'Purchase failed'));
+    }
+  }catch(e){
+    btn.textContent='Buy Electricity'; btn.disabled=false; hideProc();
     toast('Network error. Try again.');
   }
 }
