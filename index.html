@@ -602,6 +602,15 @@ select option{background:var(--surface);}
     </div>
   </div>
 
+  <div class="section-title" style="padding:8px 20px;">Security</div>
+  <div class="profile-menu">
+    <div class="menu-item" onclick="openPinScreen()">
+      <div class="menu-icon" id="pinStatusIcon">🔒</div>
+      <div class="menu-text"><p>Transaction PIN</p><span id="pinStatusText">Checking...</span></div>
+      <span style="color:var(--text2);">›</span>
+    </div>
+  </div>
+
   <div class="section-title" style="padding:8px 20px;">Support</div>
   <div class="profile-menu">
     <div class="menu-item" onclick="showInfoModal('FAQ', faqContent)">
@@ -619,6 +628,43 @@ select option{background:var(--surface);}
   </div>
 
   <div class="logout-btn" onclick="doLogout()">Log Out</div>
+</div>
+
+<!-- CREATE PIN -->
+<div class="screen" id="createPinScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Create Transaction PIN</h2></div>
+  <div class="content">
+    <div class="info-box">🔒 This 4-digit PIN will be required to confirm every purchase and wallet funding.</div>
+    <div class="input-stack">
+      <label>New PIN</label>
+      <input type="password" id="newPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+    </div>
+    <div class="input-stack">
+      <label>Confirm PIN</label>
+      <input type="password" id="confirmPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+    </div>
+    <button class="btn btn-primary" id="createPinBtn" onclick="submitCreatePin()">Create PIN</button>
+  </div>
+</div>
+
+<!-- CHANGE PIN -->
+<div class="screen" id="changePinScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Change Transaction PIN</h2></div>
+  <div class="content">
+    <div class="input-stack">
+      <label>Current PIN</label>
+      <input type="password" id="oldPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+    </div>
+    <div class="input-stack">
+      <label>New PIN</label>
+      <input type="password" id="newPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+    </div>
+    <div class="input-stack">
+      <label>Confirm New PIN</label>
+      <input type="password" id="confirmPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+    </div>
+    <button class="btn btn-primary" id="changePinBtn" onclick="submitChangePin()">Change PIN</button>
+  </div>
 </div>
 
 <!-- INFO MODAL (FAQ / Privacy / Terms) -->
@@ -648,6 +694,20 @@ select option{background:var(--surface);}
     </div>
     <button class="btn btn-primary" id="fundBtn" style="width:100%;margin-top:14px;" onclick="fundWallet()">Pay with Paystack</button>
     <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;">Secured by Paystack • Minimum ₦100</p>
+  </div>
+</div>
+
+<!-- PIN PROMPT (shown before any purchase) -->
+<div class="modal-bg" id="pinPromptModal" onclick="if(event.target===this)cancelPinPrompt()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Enter Transaction PIN</div>
+    <div class="input-stack">
+      <label>4-Digit PIN</label>
+      <input type="password" id="pinPromptInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;" onkeydown="if(event.key==='Enter')confirmPinPrompt()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="confirmPinPrompt()">Confirm</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:10px;" onclick="cancelPinPrompt()">Cancel</button>
   </div>
 </div>
 
@@ -693,7 +753,7 @@ const gProvider = new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:'select_account'});
 
 // STATE
-let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false;
+let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false;
 
 // BACKEND
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
@@ -917,6 +977,7 @@ function enterApp(){
   byId('profJoined').textContent = userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString('en-NG',{month:'long',year:'numeric'}) : '—';
   updateWalletUI();
   loadTx();
+  checkPinStatus();
   goTo('homeScreen');
   initTheme();
   pingBackend();
@@ -1065,7 +1126,7 @@ window.doLogout = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1145,10 +1206,8 @@ window.buyData = async function(){
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
   if(selPlan===null){toast('Select a data plan');return;}
   const plan=PLANS[dataNet][selPlan];
-  // if((userProfile.balance||0)<plan.p){
-//     toast('Insufficient balance. Fund wallet first.');
-//     return;
-// }
+  const pin = await askPin();
+  if(!pin) return;
   const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
@@ -1160,7 +1219,8 @@ const res = await api('/api/data/buy-data', {
     network: NETS[dataNet],
     phone,
     plan: plan.c,
-    amount: plan.p
+    amount: plan.p,
+    pin
 })
 });
 
@@ -1180,10 +1240,8 @@ window.buyAirtime = async function(){
   const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
   if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
-  // if((userProfile.balance||0)<amount){
-//     toast('Insufficient balance. Fund wallet first.');
-//     return;
-// }
+  const pin = await askPin();
+  if(!pin) return;
   const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
   try{
@@ -1194,7 +1252,8 @@ const res = await api('/api/airtime/purchase', {
     body: JSON.stringify({
         network: NETS[airtimeNet],
         phone,
-        amount
+        amount,
+        pin
     })
 });
 
@@ -1275,6 +1334,9 @@ window.buyCable = async function(){
   if(!phone || phone.length<10){ toast('Enter valid phone number'); return; }
   if(!amount || amount<100){ toast('Minimum amount is ₦100'); return; }
 
+  const pin = await askPin();
+  if(!pin) return;
+
   const btn = byId('cableBuyBtn');
   btn.textContent='Processing...'; btn.disabled=true;
   showProc('Processing Subscription...','Please wait, do not close');
@@ -1283,7 +1345,7 @@ window.buyCable = async function(){
     const ref = 'QT' + Date.now();
     const res = await api('/api/cable/purchase', {
       method:'POST',
-      body: JSON.stringify({ cableTv: cableProvider, package: packageCode, smartCardNo, amount, phone })
+      body: JSON.stringify({ cableTv: cableProvider, package: packageCode, smartCardNo, amount, phone, pin })
     });
     const data = await res.json();
     btn.textContent='Subscribe'; btn.disabled=false; hideProc();
@@ -1364,6 +1426,9 @@ window.buyElectricity = async function(){
   if(!phone || phone.length<10){ toast('Enter valid phone number'); return; }
   if(!amount || amount<=0){ toast('Enter a valid amount'); return; }
 
+  const pin = await askPin();
+  if(!pin) return;
+
   const btn = byId('electricityBuyBtn');
   btn.textContent='Processing...'; btn.disabled=true;
   showProc('Processing Purchase...','Please wait, do not close');
@@ -1372,7 +1437,7 @@ window.buyElectricity = async function(){
     const ref = 'QT' + Date.now();
     const res = await api('/api/electricity/purchase', {
       method:'POST',
-      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo, amount, phone })
+      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo, amount, phone, pin })
     });
     const data = await res.json();
     btn.textContent='Buy Electricity'; btn.disabled=false; hideProc();
@@ -1394,6 +1459,97 @@ window.buyElectricity = async function(){
 
 // FUND
 window.showFund=function(){byId('fundModal').classList.add('show');}
+// PIN PROMPT
+let pinPromptResolve = null;
+function askPin(){
+  return new Promise((resolve)=>{
+    pinPromptResolve = resolve;
+    byId('pinPromptInput').value='';
+    byId('pinPromptModal').classList.add('show');
+    setTimeout(()=>byId('pinPromptInput')?.focus(),200);
+  });
+}
+window.confirmPinPrompt = function(){
+  const p = val('pinPromptInput');
+  if(!/^[0-9]{4}$/.test(p)){ toast('Enter a valid 4-digit PIN'); return; }
+  byId('pinPromptModal').classList.remove('show');
+  const resolve = pinPromptResolve; pinPromptResolve = null;
+  if(resolve) resolve(p);
+}
+window.cancelPinPrompt = function(){
+  byId('pinPromptModal').classList.remove('show');
+  const resolve = pinPromptResolve; pinPromptResolve = null;
+  if(resolve) resolve(null);
+}
+
+async function checkPinStatus(){
+  try{
+    const res = await api('/api/pin/status');
+    const data = await res.json();
+    hasPin = Boolean(data?.data?.hasPin);
+  }catch(e){
+    hasPin = false;
+  }
+  const icon = byId('pinStatusIcon'), text = byId('pinStatusText');
+  if(icon && text){
+    icon.textContent = hasPin ? '✅' : '❌';
+    text.textContent = hasPin ? 'Active — tap to change' : 'Not created — tap to set up';
+  }
+}
+
+window.openPinScreen = function(){
+  goTo(hasPin ? 'changePinScreen' : 'createPinScreen');
+}
+
+window.submitCreatePin = async function(){
+  const pin = val('newPinInput'), confirm = val('confirmPinInput');
+  if(!/^[0-9]{4}$/.test(pin)){ toast('Enter a valid 4-digit PIN'); return; }
+  if(pin !== confirm){ toast('PINs do not match'); return; }
+
+  const btn = byId('createPinBtn');
+  btn.textContent = 'Creating...'; btn.disabled = true;
+  try{
+    const res = await api('/api/pin/create', { method:'POST', body: JSON.stringify({ pin }) });
+    const data = await res.json();
+    btn.textContent = 'Create PIN'; btn.disabled = false;
+    if(data.success === true){
+      toast('✅ Transaction PIN created');
+      byId('newPinInput').value=''; byId('confirmPinInput').value='';
+      await checkPinStatus();
+      goTo('profileScreen');
+    } else {
+      toast('❌ ' + (data?.message || 'Unable to create PIN'));
+    }
+  }catch(e){
+    btn.textContent = 'Create PIN'; btn.disabled = false;
+    toast('Network error. Try again.');
+  }
+}
+
+window.submitChangePin = async function(){
+  const oldPin = val('oldPinInput'), newPin = val('newPinInput2'), confirm = val('confirmPinInput2');
+  if(!/^[0-9]{4}$/.test(oldPin) || !/^[0-9]{4}$/.test(newPin)){ toast('Enter valid 4-digit PINs'); return; }
+  if(newPin !== confirm){ toast('New PINs do not match'); return; }
+
+  const btn = byId('changePinBtn');
+  btn.textContent = 'Changing...'; btn.disabled = true;
+  try{
+    const res = await api('/api/pin/change', { method:'PATCH', body: JSON.stringify({ oldPin, newPin }) });
+    const data = await res.json();
+    btn.textContent = 'Change PIN'; btn.disabled = false;
+    if(data.success === true){
+      toast('✅ PIN changed successfully');
+      byId('oldPinInput').value=''; byId('newPinInput2').value=''; byId('confirmPinInput2').value='';
+      goTo('profileScreen');
+    } else {
+      toast('❌ ' + (data?.message || 'Unable to change PIN'));
+    }
+  }catch(e){
+    btn.textContent = 'Change PIN'; btn.disabled = false;
+    toast('Network error. Try again.');
+  }
+}
+
 window.closeFund=function(){byId('fundModal').classList.remove('show');}
 
 // INFO MODAL (FAQ / Privacy / Terms)
@@ -1430,6 +1586,9 @@ window.fundWallet = async function(){
   const amount = parseInt(val('fundAmt'));
   if(!amount || amount < 100){ toast('Minimum funding amount is ₦100'); return; }
 
+  const pin = await askPin();
+  if(!pin) return;
+
   const btn = byId('fundBtn');
   btn.textContent = 'Processing...'; btn.disabled = true;
   showProc('Initializing Payment...','Setting up your secure payment');
@@ -1437,7 +1596,7 @@ window.fundWallet = async function(){
   try{
     const res = await api('/api/payments/initialize', {
       method: 'POST',
-      body: JSON.stringify({ amount })
+      body: JSON.stringify({ amount, pin })
     });
     const data = await res.json();
     hideProc();
