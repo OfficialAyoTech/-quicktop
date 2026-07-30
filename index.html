@@ -397,6 +397,7 @@ select option{background:var(--surface);}
     <div class="net-pill" data-net="9mobile" onclick="pickNet(this,'data')"><div class="net-dot" style="background:#0056A2;"></div>9mobile</div>
   </div>
   <div class="content">
+    <button class="btn btn-outline" style="margin-bottom:14px;" onclick="openFavPicker('data')">⭐ Use Saved Favorite</button>
     <div class="info-box">💡 <strong>Save up to 40%</strong> on data. Instant delivery guaranteed.</div>
     <div class="input-stack">
       <label>Phone Number</label>
@@ -426,6 +427,7 @@ select option{background:var(--surface);}
     <div class="net-pill" data-net="9mobile" onclick="pickNet(this,'airtime')"><div class="net-dot" style="background:#0056A2;"></div>9mobile</div>
   </div>
   <div class="content">
+    <button class="btn btn-outline" style="margin-bottom:14px;" onclick="openFavPicker('airtime')">⭐ Use Saved Favorite</button>
     <div class="input-stack">
       <label>Phone Number</label>
       <input type="tel" id="airtimePhone" placeholder="080XXXXXXXX" maxlength="11" oninput="autoNet(this.value,'airtime')"/>
@@ -450,8 +452,8 @@ select option{background:var(--surface);}
 <div class="screen" id="cableScreen">
   <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Cable TV</h2></div>
   <div class="content">
+    <button class="btn btn-outline" style="margin-bottom:14px;" onclick="openFavPicker('cable')">⭐ Use Saved Favorite</button>
     <div class="section-title">Select Provider</div>
-    <div class="net-pills" id="cableProviderPills">
       <div class="net-pill active" data-provider="DSTV" onclick="pickCableProvider('DSTV',this)">DSTV</div>
       <div class="net-pill" data-provider="GOTV" onclick="pickCableProvider('GOTV',this)">GOTV</div>
       <div class="net-pill" data-provider="STARTIMES" onclick="pickCableProvider('STARTIMES',this)">Startimes</div>
@@ -484,6 +486,7 @@ select option{background:var(--surface);}
 <div class="screen" id="electricityScreen">
   <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Electricity</h2></div>
   <div class="content">
+    <button class="btn btn-outline" style="margin-bottom:14px;" onclick="openFavPicker('electricity')">⭐ Use Saved Favorite</button>
     <div class="section-title">Select Provider</div>
     <div class="net-pills" id="electricityProviderPills">
       <div class="net-pill active" data-provider="EKEDC" onclick="pickElectricityProvider('EKEDC',this)">Eko Electric</div>
@@ -738,6 +741,16 @@ select option{background:var(--surface);}
     <div class="spinner"></div>
     <div class="proc-title" id="procTitle">Processing...</div>
     <div class="proc-sub" id="procSub">Please wait, do not close</div>
+  </div>
+</div>
+
+<!-- FAVORITES PICKER -->
+<div class="modal-bg" id="favPickerModal" onclick="if(event.target===this)closeFavPicker()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="favPickerTitle">Saved Favorites</div>
+    <div id="favPickerList" style="max-height:50vh;overflow-y:auto;"></div>
+    <button class="btn btn-outline" style="width:100%;margin-top:14px;" onclick="closeFavPicker()">Close</button>
   </div>
 </div>
 
@@ -1770,6 +1783,111 @@ window.saveFavoriteFromSuccess = async function(){
     }
   }catch(e){
     btn.textContent='⭐ Save as Favorite'; btn.disabled=false;
+    toast('Network error. Try again.');
+  }
+}
+
+// FAVORITES PICKER
+let favPickerService = null;
+
+window.openFavPicker = async function(service){
+  favPickerService = service;
+  const labels = {data:'Data',airtime:'Airtime',cable:'Cable TV',electricity:'Electricity'};
+  byId('favPickerTitle').textContent = 'Saved ' + (labels[service]||service) + ' Favorites';
+  byId('favPickerList').innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">Loading...</p>';
+  byId('favPickerModal').classList.add('show');
+
+  try{
+    const res = await api('/api/favorites?service='+encodeURIComponent(service));
+    const data = await res.json();
+    const items = (data.success && Array.isArray(data.data)) ? data.data : [];
+    renderFavPickerList(items);
+  }catch(e){
+    byId('favPickerList').innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">Could not load favorites.</p>';
+  }
+}
+
+window.closeFavPicker = function(){
+  byId('favPickerModal').classList.remove('show');
+}
+
+function renderFavPickerList(items){
+  const list = byId('favPickerList');
+
+  if(!items.length){
+    list.innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">No saved favorites yet.</p>';
+    return;
+  }
+
+  list.innerHTML = items.map((f,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--surface2);">
+      <div style="flex:1;cursor:pointer;" onclick="applyFavorite(${i})">
+        <div style="font-weight:600;">${f.nickname}</div>
+        <div style="font-size:13px;color:var(--text2);">${f.provider||''} • ${f.account_number}</div>
+      </div>
+      <div style="padding:8px;cursor:pointer;color:#E53935;" onclick="deleteFavoriteFromPicker(${i},event)">🗑️</div>
+    </div>
+  `).join('');
+
+  window._favPickerItems = items;
+}
+
+window.applyFavorite = function(index){
+  const f = window._favPickerItems[index];
+  if(!f) return;
+
+  if(favPickerService==='data'){
+    byId('dataPhone').value = f.account_number;
+    byId('dataScreen').querySelectorAll('.net-pill').forEach(p=>{
+      p.classList.remove('active');
+      if(p.dataset.net===f.provider) p.classList.add('active');
+    });
+    dataNet = f.provider; selPlan=null; renderPlans();
+  } else if(favPickerService==='airtime'){
+    byId('airtimePhone').value = f.account_number;
+    byId('airtimeScreen').querySelectorAll('.net-pill').forEach(p=>{
+      p.classList.remove('active');
+      if(p.dataset.net===f.provider) p.classList.add('active');
+    });
+    airtimeNet = f.provider;
+  } else if(favPickerService==='cable'){
+    byId('cableSmartCard').value = f.account_number;
+    document.querySelectorAll('#cableProviderPills .net-pill').forEach(p=>{
+      p.classList.remove('active');
+      if(p.dataset.provider===f.provider) p.classList.add('active');
+    });
+    cableProvider = f.provider;
+    renderCablePackages();
+    clearCableVerify();
+  } else if(favPickerService==='electricity'){
+    byId('meterNo').value = f.account_number;
+    document.querySelectorAll('#electricityProviderPills .net-pill').forEach(p=>{
+      p.classList.remove('active');
+      if(p.dataset.provider===f.provider) p.classList.add('active');
+    });
+    electricityProvider = f.provider;
+    clearMeterVerify();
+  }
+
+  toast('Filled from favorite: ' + f.nickname);
+  closeFavPicker();
+}
+
+window.deleteFavoriteFromPicker = async function(index, event){
+  event.stopPropagation();
+  const f = window._favPickerItems[index];
+  if(!f) return;
+  if(!confirm('Delete favorite "'+f.nickname+'"?')) return;
+
+  try{
+    const res = await api('/api/favorites/'+f.id, { method:'DELETE' });
+    const data = await res.json();
+    if(data.success === true){
+      openFavPicker(favPickerService);
+    } else {
+      toast('❌ ' + (data?.message || 'Could not delete favorite'));
+    }
+  }catch(e){
     toast('Network error. Try again.');
   }
 }
