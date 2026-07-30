@@ -536,6 +536,10 @@ select option{background:var(--surface);}
     <h2 class="success-title" id="sucTitle">Successful!</h2>
     <p class="success-msg" id="sucMsg"></p>
     <div class="success-card" id="sucCard"></div>
+    <div id="favSaveBox" style="display:none;margin:14px 0;">
+      <input type="text" id="favNickname" placeholder="Nickname (e.g. My Phone, Mum's Meter)" maxlength="40"/>
+      <button class="btn btn-outline" id="favSaveBtn" style="margin-top:10px;" onclick="saveFavoriteFromSuccess()">⭐ Save as Favorite</button>
+    </div>
     <button class="btn btn-primary" onclick="goTo('homeScreen')">Back to Home</button>
   </div>
 </div>
@@ -1257,7 +1261,7 @@ const data = await res.json();
     if(ok){
       await saveBal((userProfile.balance||0)-plan.p);
       await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1290,7 +1294,7 @@ const data = await res.json();
     if(ok){
       await saveBal((userProfile.balance||0)-amount);
       await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']]);
+      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1381,7 +1385,7 @@ window.buyCable = async function(){
     if(ok){
       await saveBal((userProfile.balance||0)-amount);
       await saveTx({type:'cable', network:cableProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
-      showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']]);
+      showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'cable',account_number:smartCardNo,provider:cableProvider,metadata:{package:packageCode,packageName}});
       byId('cableSmartCard').value=''; byId('cableAmt').value=''; clearCableVerify();
     } else {
       toast('❌ ' + (data?.message || 'Subscription failed'));
@@ -1473,7 +1477,7 @@ window.buyElectricity = async function(){
     if(ok){
       await saveBal((userProfile.balance||0)-amount);
       await saveTx({type:'electricity', network:electricityProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
-      showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']]);
+      showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'electricity',account_number:meterNo,provider:electricityProvider,metadata:{meterType}});
       byId('meterNo').value=''; byId('electricityAmt').value=''; clearMeterVerify();
     } else {
       toast('❌ ' + (data?.message || 'Purchase failed'));
@@ -1718,10 +1722,56 @@ window.fundWallet = async function(){
 }
 
 // SUCCESS
-function showSuccess(title,msg,rows){
+let currentFavCandidate = null;
+
+function showSuccess(title,msg,rows,favCandidate){
   byId('sucTitle').textContent=title; byId('sucMsg').textContent=msg;
   byId('sucCard').innerHTML=rows.map(r=>`<div class="success-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+
+  currentFavCandidate = favCandidate || null;
+  const box = byId('favSaveBox');
+  const nick = byId('favNickname');
+  const btn = byId('favSaveBtn');
+  nick.value='';
+  btn.textContent='⭐ Save as Favorite';
+  btn.disabled=false;
+  box.style.display = currentFavCandidate ? 'block' : 'none';
+
   goTo('successScreen');
+}
+
+window.saveFavoriteFromSuccess = async function(){
+  if(!currentFavCandidate) return;
+  const nickname = val('favNickname');
+  if(!nickname || !nickname.trim()){ toast('Enter a nickname for this favorite'); return; }
+
+  const btn = byId('favSaveBtn');
+  btn.textContent='Saving...'; btn.disabled=true;
+
+  try{
+    const res = await api('/api/favorites', {
+      method:'POST',
+      body: JSON.stringify({
+        nickname: nickname.trim(),
+        service: currentFavCandidate.service,
+        account_number: currentFavCandidate.account_number,
+        provider: currentFavCandidate.provider,
+        metadata: currentFavCandidate.metadata || {}
+      })
+    });
+    const data = await res.json();
+
+    if(data.success === true){
+      btn.textContent='✅ Saved';
+      toast('Saved to favorites');
+    } else {
+      btn.textContent='⭐ Save as Favorite'; btn.disabled=false;
+      toast('❌ ' + (data?.message || 'Could not save favorite'));
+    }
+  }catch(e){
+    btn.textContent='⭐ Save as Favorite'; btn.disabled=false;
+    toast('Network error. Try again.');
+  }
 }
 
 window.showTxDetails = async function(reference){
