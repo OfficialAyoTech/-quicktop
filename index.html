@@ -558,6 +558,7 @@ select option{background:var(--surface);}
     <div class="profile-avatar" id="profInitial">A</div>
     <div class="profile-name" id="profName">User</div>
     <div class="profile-email" id="profEmail">user@email.com</div>
+    <div id="profVerifiedBadge" style="margin-top:6px;font-size:12px;font-weight:700;"></div>
   </div>
 
   <div style="padding:0 20px;margin-bottom:16px;">
@@ -594,7 +595,7 @@ select option{background:var(--surface);}
 
   <div class="section-title" style="padding:8px 20px;">Account</div>
   <div class="profile-menu">
-    <div class="menu-item" onclick="toast('Coming soon!')">
+    <div class="menu-item" onclick="openEditProfile()">
       <div class="menu-icon">✏️</div><div class="menu-text"><p>Edit Profile</p><span>Update your name and phone</span></div><span style="color:var(--text2);">›</span>
     </div>
     <div class="menu-item" onclick="toast('Coming soon!')">
@@ -628,6 +629,22 @@ select option{background:var(--surface);}
   </div>
 
   <div class="logout-btn" onclick="doLogout()">Log Out</div>
+</div>
+
+<!-- EDIT PROFILE -->
+<div class="screen" id="editProfileScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Edit Profile</h2></div>
+  <div class="content">
+    <div class="input-stack">
+      <label>Full Name</label>
+      <input type="text" id="editNameInput" placeholder="Your full name"/>
+    </div>
+    <div class="input-stack">
+      <label>Phone Number</label>
+      <input type="tel" id="editPhoneInput" placeholder="080XXXXXXXX" maxlength="15"/>
+    </div>
+    <button class="btn btn-primary" id="editProfileBtn" onclick="submitEditProfile()">Save Changes</button>
+  </div>
 </div>
 
 <!-- CREATE PIN -->
@@ -890,22 +907,31 @@ async function loadProfile() {
       method: "POST"
     });
 
-    // Load wallet from backend
-    const response = await api("/api/wallet");
+    const [walletRes, profileRes] = await Promise.all([
+      api("/api/wallet"),
+      api("/api/profile")
+    ]);
 
-    const result = await response.json();
+    const result = await walletRes.json();
 
     if (!result.success) {
       throw new Error(result.message);
     }
 
+    let p = {};
+    try{
+      const profileResult = await profileRes.json();
+      if(profileResult.success) p = profileResult.data;
+    }catch(e){ /* fall back silently below */ }
+
     userProfile = {
-      name: currentUser.displayName || "User",
-      email: currentUser.email,
-      phone: "",
+      name: p.full_name || currentUser.displayName || "User",
+      email: p.email || currentUser.email,
+      phone: p.phone || "",
+      isVerified: Boolean(p.is_verified),
       balance: Number(result.data.balance),
       currency: result.data.currency,
-      createdAt: result.data.created_at
+      createdAt: p.created_at || result.data.created_at
     };
 
     updateWalletUI();
@@ -975,6 +1001,7 @@ function enterApp(){
   byId('profInitial').textContent = (userProfile.name||'U')[0].toUpperCase();
   byId('profPhone').textContent = userProfile.phone || 'Not set';
   byId('profJoined').textContent = userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString('en-NG',{month:'long',year:'numeric'}) : '—';
+  byId('profVerifiedBadge').innerHTML = userProfile.isVerified ? '<span style="color:#1DB954;">Verified ✅</span>' : '<span style="color:var(--text2);">Not verified</span>';
   updateWalletUI();
   loadTx();
   checkPinStatus();
@@ -1126,7 +1153,7 @@ window.doLogout = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1494,6 +1521,45 @@ async function checkPinStatus(){
   if(icon && text){
     icon.textContent = hasPin ? '✅' : '❌';
     text.textContent = hasPin ? 'Active — tap to change' : 'Not created — tap to set up';
+  }
+}
+
+window.openEditProfile = function(){
+  byId('editNameInput').value = userProfile.name || '';
+  byId('editPhoneInput').value = userProfile.phone || '';
+  goTo('editProfileScreen');
+}
+
+window.submitEditProfile = async function(){
+  const full_name = val('editNameInput');
+  const phone = val('editPhoneInput');
+  if(!full_name || full_name.length<2){ toast('Enter your full name'); return; }
+  if(!/^[0-9]{10,15}$/.test(phone)){ toast('Enter a valid phone number (10-15 digits)'); return; }
+
+  const btn = byId('editProfileBtn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  try{
+    const res = await api('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ full_name, phone })
+    });
+    const data = await res.json();
+    btn.textContent = 'Save Changes'; btn.disabled = false;
+    if(data.success === true){
+      userProfile.name = data.data.full_name;
+      userProfile.phone = data.data.phone;
+      byId('profName').textContent = userProfile.name;
+      byId('profPhone').textContent = userProfile.phone || 'Not set';
+      byId('profInitial').textContent = (userProfile.name||'U')[0].toUpperCase();
+      byId('homeName').textContent = userProfile.name.split(' ')[0];
+      toast('✅ Profile updated');
+      goTo('profileScreen');
+    } else {
+      toast('❌ ' + (data?.message || 'Unable to update profile'));
+    }
+  }catch(e){
+    btn.textContent = 'Save Changes'; btn.disabled = false;
+    toast('Network error. Try again.');
   }
 }
 
