@@ -389,7 +389,7 @@ select option{background:var(--surface);}
     <div class="qa" onclick="goTo('cableScreen')"><span class="qa-icon">📺</span><div class="qa-label">Cable TV</div></div>
     <div class="qa" onclick="goTo('electricityScreen')"><span class="qa-icon">💡</span><div class="qa-label">Electricity</div></div>
     <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎲</span><div class="qa-label">Betting</div></div>
-    <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎁</span><div class="qa-label">Reward</div></div>
+    <div class="qa" onclick="goTo('referScreen')"><span class="qa-icon">🎁</span><div class="qa-label">Reward</div></div>
   </div>
   <div class="section-title">Recent Transactions</div>
   <div class="tx-list" id="homeTx"></div>
@@ -610,6 +610,56 @@ select option{background:var(--surface);}
       </div>
     </div>
     <div class="info-box" style="margin-top:14px;">⚠️ Turning off Wallet Alerts means you won't be notified in-app about funding or debits.</div>
+  </div>
+</div>
+
+<!-- REFER & EARN -->
+<div class="screen" id="referScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Refer &amp; Earn</h2></div>
+  <div class="content">
+    <div style="background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:var(--radius);padding:22px;text-align:center;color:#0A0F1E;">
+      <div style="font-size:32px;">🎁</div>
+      <div style="font-weight:700;font-size:17px;margin-top:8px;">Invite friends and earn ₦500</div>
+      <div style="font-size:13px;margin-top:4px;opacity:.85;">for every friend that funds their wallet for the first time</div>
+      <button class="btn" style="width:100%;margin-top:16px;background:#0A0F1E;color:#fff;border:none;" onclick="shareReferralLink()">Invite Friends</button>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">Your Referral Code</div>
+      <div style="display:flex;gap:10px;align-items:center;background:var(--surface);border-radius:var(--radius-sm);padding:14px 16px;">
+        <div style="flex:1;font-weight:700;font-size:16px;letter-spacing:1px;" id="referCode">Loading...</div>
+        <button class="btn btn-outline" style="padding:8px 14px;font-size:13px;" onclick="copyReferralCode()">Copy</button>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">Your Referral Link</div>
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:14px 16px;">
+        <div style="font-size:13px;word-break:break-all;" id="referLink">-</div>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="btn btn-outline" style="flex:1;padding:8px;font-size:13px;" onclick="copyReferralLink()">Copy Link</button>
+          <button class="btn btn-outline" style="flex:1;padding:8px;font-size:13px;" onclick="shareReferralLink()">Share</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <div style="flex:1;background:var(--surface);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;" id="referTotalCount">0</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Total Referrals</div>
+      </div>
+      <div style="flex:1;background:var(--surface);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:var(--accent);" id="referTotalEarned">₦0</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Total Earned</div>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;">
+      <div class="section-title">Referral History</div>
+      <div id="referHistoryList"></div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px;">💡 Share your link → your friend signs up → they fund their wallet → you instantly earn ₦500.</div>
   </div>
 </div>
 
@@ -843,6 +893,18 @@ gProvider.setCustomParameters({prompt:'select_account'});
 // STATE
 let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false;
 
+// REFERRAL CODE CAPTURE
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if(ref){
+    localStorage.setItem('quicktop_ref_code', ref.trim());
+    // clean the URL so the code doesn't linger visibly or get double-processed on refresh
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+})();
+
 // BACKEND
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
 async function api(path, options = {}) {
@@ -974,9 +1036,12 @@ async function loadProfile() {
   try {
 
     // Ensure the logged-in Firebase user exists in PostgreSQL
+    const refCode = localStorage.getItem('quicktop_ref_code');
     await api("/api/auth/sync-user", {
-      method: "POST"
+      method: "POST",
+      body: JSON.stringify(refCode ? { referral_code: refCode } : {})
     });
+    if(refCode) localStorage.removeItem('quicktop_ref_code');
 
     const [walletRes, profileRes] = await Promise.all([
       api("/api/wallet"),
@@ -1136,68 +1201,6 @@ window.doSignup = async function(){
   const btn=byId('sigBtn'); btn.textContent='Creating...'; btn.disabled=true;
   try{
     const c=await createUserWithEmailAndPassword(auth,email,pass);
-    window.doSignup = async function(){
-
-  const name = val('sigName');
-  const phone = val('sigPhone');
-  const email = val('sigEmail');
-  const pass = val('sigPass');
-  const confirm = val('sigConfirm');
-
-  byId('sigErr').textContent='';
-
-  if(!name){
-    byId('sigErr').textContent='Enter full name';
-    return;
-  }
-
-  if(!phone || phone.length < 10){
-    byId('sigErr').textContent='Enter valid phone';
-    return;
-  }
-
-  if(!email){
-    byId('sigErr').textContent='Enter email';
-    return;
-  }
-
-  if(!pass || pass.length < 6){
-    byId('sigErr').textContent='Password min 6 chars';
-    return;
-  }
-
-  if(pass !== confirm){
-    byId('sigErr').textContent='Passwords do not match';
-    return;
-  }
-
-  const btn = byId('sigBtn');
-  btn.textContent='Creating...';
-  btn.disabled=true;
-
-  try{
-
-    const c = await createUserWithEmailAndPassword(auth,email,pass);
-
-    currentUser = c.user;
-
-    await loadProfile();
-
-    enterApp();
-
-  }catch(e){
-
-    byId('sigErr').textContent =
-      e.code === 'auth/email-already-in-use'
-      ? 'Email already registered'
-      : e.message;
-
-    btn.textContent='Create Account';
-    btn.disabled=false;
-
-  }
-
-}
     currentUser=c.user; await loadProfile(); enterApp();
   }catch(e){
     byId('sigErr').textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
@@ -1225,7 +1228,7 @@ window.doLogout = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null,referScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1237,6 +1240,7 @@ window.goTo = function(id, fromPop){
   if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
   if(id==='notificationsScreen') loadNotifications();
   if(id==='notifPrefsScreen') loadNotifPrefs();
+  if(id==='referScreen') loadReferDashboard();
   window.scrollTo(0,0);
   if(!fromPop) history.pushState({screen:id}, '', '');
 }
@@ -2035,6 +2039,85 @@ window.markAllNotifsRead = async function(){
     refreshNotifBadge();
   }catch(e){
     toast('Network error. Try again.');
+  }
+}
+
+// REFER & EARN
+let referData = null;
+
+window.loadReferDashboard = async function(){
+  byId('referCode').textContent = 'Loading...';
+  byId('referLink').textContent = '-';
+  byId('referHistoryList').innerHTML = '';
+
+  try{
+    const res = await api('/api/referrals');
+    const data = await res.json();
+    if(!data.success){ toast('❌ ' + (data?.message || 'Could not load referral info')); return; }
+
+    referData = data.data;
+    const code = referData.referral_code || '-';
+    // Build the link from the app's real live URL rather than trusting the backend's referral_link field
+    const link = window.location.origin + window.location.pathname + '?ref=' + code;
+
+    byId('referCode').textContent = code;
+    byId('referLink').textContent = link;
+    byId('referTotalCount').textContent = referData.total_referrals || 0;
+    byId('referTotalEarned').textContent = '₦' + Number(referData.total_earnings || 0).toLocaleString();
+
+    const list = referData.referrals || [];
+    if(!list.length){
+      byId('referHistoryList').innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">No referrals yet — share your link to get started!</p>';
+    } else {
+      byId('referHistoryList').innerHTML = list.map(r=>{
+        const status = (r.status||'').toUpperCase();
+        const statusLabel = status==='COMPLETED' ? '✅ Completed' : '⏳ Pending';
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--surface2);">
+            <div>
+              <div style="font-weight:600;font-size:14px;">${r.full_name || r.email || 'User'}</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;">${statusLabel}</div>
+            </div>
+            <div style="font-weight:700;font-size:14px;color:${status==='COMPLETED'?'var(--accent)':'var(--text2)'};">₦${Number(r.reward||0).toLocaleString()}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  }catch(e){
+    toast('Network error. Try again.');
+  }
+}
+
+window.copyReferralCode = async function(){
+  if(!referData?.referral_code) return;
+  try{
+    await navigator.clipboard.writeText(referData.referral_code);
+    toast('Referral code copied');
+  }catch(e){
+    toast('Could not copy — copy it manually');
+  }
+}
+
+window.copyReferralLink = async function(){
+  const link = byId('referLink').textContent;
+  if(!link || link==='-') return;
+  try{
+    await navigator.clipboard.writeText(link);
+    toast('Referral link copied');
+  }catch(e){
+    toast('Could not copy — copy it manually');
+  }
+}
+
+window.shareReferralLink = async function(){
+  const link = byId('referLink').textContent;
+  if(!link || link==='-'){ toast('Loading your referral link...'); return; }
+  const text = `Join me on QuickTop for cheap airtime, data, cable TV & electricity! Sign up with my link and I'll earn a referral bonus: ${link}`;
+
+  if(navigator.share){
+    try{ await navigator.share({ text }); }catch(e){ /* user cancelled share, no-op */ }
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   }
 }
 
