@@ -234,6 +234,10 @@ select option{background:var(--surface);}
 .nav-item.active .nav-label{color:var(--accent);}
 .nav-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;display:none;}
 .nav-item.active .nav-dot{display:block;}
+.pref-track{width:46px;height:26px;border-radius:13px;position:relative;cursor:pointer;transition:background .2s;background:var(--surface2);flex-shrink:0;}
+.pref-track.on{background:var(--accent);}
+.pref-thumb{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;}
+.pref-track.on .pref-thumb{left:23px;}
 
 /* TOAST */
 #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);padding:12px 20px;border-radius:50px;font-size:14px;font-weight:500;z-index:300;display:none;white-space:nowrap;border:1px solid var(--accent);box-shadow:0 4px 20px rgba(0,0,0,.4);}
@@ -363,7 +367,12 @@ select option{background:var(--surface);}
     <div style="display:flex;align-items:center;gap:10px;">
       <div><p style="color:var(--text2);font-size:12px;">Good day 👋</p><h2 id="homeName" style="font-size:17px;">User</h2></div>
     </div>
-    <div class="topbar-right" onclick="goTo('profileScreen')">👤</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="topbar-right" id="bellIcon" style="position:relative;" onclick="goTo('notificationsScreen')">🔔
+        <div id="notifBadge" style="display:none;position:absolute;top:6px;right:8px;width:9px;height:9px;background:#E53935;border-radius:50%;border:2px solid var(--bg);"></div>
+      </div>
+      <div class="topbar-right" onclick="goTo('profileScreen')">👤</div>
+    </div>
   </div>
   <div class="wallet-card">
     <div class="wallet-label">Wallet Balance</div>
@@ -560,6 +569,38 @@ select option{background:var(--surface);}
   </div>
 </div>
 
+<!-- NOTIFICATIONS -->
+<div class="screen" id="notificationsScreen">
+  <div class="page-header">
+    <div class="back-btn" onclick="goTo('homeScreen')">←</div>
+    <h2>Notifications</h2>
+    <span style="margin-left:auto;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;" onclick="markAllNotifsRead()">Mark all read</span>
+  </div>
+  <div id="notifListWrap" style="padding:0 20px;"></div>
+</div>
+
+<!-- NOTIFICATION PREFERENCES -->
+<div class="screen" id="notifPrefsScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Notification Preferences</h2></div>
+  <div class="content">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:6px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--surface2);">
+        <div><div style="font-weight:600;font-size:15px;">Purchase Alerts</div><div style="font-size:12px;color:var(--text2);">Airtime, data, cable, electricity updates</div></div>
+        <div class="pref-track" id="prefTrack_purchase" onclick="toggleNotifPref('purchase')"><div class="pref-thumb"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--surface2);">
+        <div><div style="font-weight:600;font-size:15px;">Wallet Alerts</div><div style="font-size:12px;color:var(--text2);">Funding and debit notifications</div></div>
+        <div class="pref-track" id="prefTrack_wallet" onclick="toggleNotifPref('wallet')"><div class="pref-thumb"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;">
+        <div><div style="font-weight:600;font-size:15px;">Promotions</div><div style="font-size:12px;color:var(--text2);">Referral bonuses and offers</div></div>
+        <div class="pref-track" id="prefTrack_promotion" onclick="toggleNotifPref('promotion')"><div class="pref-thumb"></div></div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:14px;">⚠️ Turning off Wallet Alerts means you won't be notified in-app about funding or debits.</div>
+  </div>
+</div>
+
 <!-- PROFILE -->
 <div class="screen" id="profileScreen">
   <div class="profile-head">
@@ -596,7 +637,7 @@ select option{background:var(--surface);}
     <div class="menu-item" onclick="toast('Coming soon!')">
       <div class="menu-icon">🌐</div><div class="menu-text"><p>Language</p><span>English (default)</span></div><span style="color:var(--text2);">›</span>
     </div>
-    <div class="menu-item" onclick="toast('Coming soon!')">
+    <div class="menu-item" onclick="goTo('notifPrefsScreen')">
       <div class="menu-icon">🔔</div><div class="menu-text"><p>Notifications</p><span>Manage alerts</span></div><span style="color:var(--text2);">›</span>
     </div>
   </div>
@@ -1026,6 +1067,7 @@ function enterApp(){
   goTo('homeScreen');
   initTheme();
   pingBackend();
+  refreshNotifBadge();
   setInterval(pingBackend, 10*60*1000);
 }
 
@@ -1171,7 +1213,7 @@ window.doLogout = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1181,6 +1223,8 @@ window.goTo = function(id, fromPop){
   if(id==='historyScreen') renderHistoryTx();
   if(id==='cableScreen') renderCablePackages();
   if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
+  if(id==='notificationsScreen') loadNotifications();
+  if(id==='notifPrefsScreen') loadNotifPrefs();
   window.scrollTo(0,0);
   if(!fromPop) history.pushState({screen:id}, '', '');
 }
@@ -1889,6 +1933,119 @@ window.deleteFavoriteFromPicker = async function(index, event){
       toast('❌ ' + (data?.message || 'Could not delete favorite'));
     }
   }catch(e){
+    toast('Network error. Try again.');
+  }
+}
+
+// NOTIFICATIONS
+window.refreshNotifBadge = async function(){
+  try{
+    const res = await api('/api/notifications/unread-count');
+    const data = await res.json();
+    const badge = byId('notifBadge');
+    if(data.success && data.data?.unread > 0){
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }catch(e){
+    // fail silently, badge just won't show
+  }
+}
+
+window.loadNotifications = async function(){
+  const wrap = byId('notifListWrap');
+  wrap.innerHTML = '<p style="text-align:center;color:var(--text2);padding:30px 0;">Loading...</p>';
+
+  try{
+    const res = await api('/api/notifications');
+    const data = await res.json();
+    const items = (data.success && Array.isArray(data.data)) ? data.data : [];
+
+    if(!items.length){
+      wrap.innerHTML = '<p style="text-align:center;color:var(--text2);padding:30px 0;">No notifications yet.</p>';
+      return;
+    }
+
+    wrap.innerHTML = items.map(n=>{
+      const date = n.created_at ? new Date(n.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      return `
+        <div onclick="markNotifRead('${n.id}')" style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--surface2);cursor:pointer;${n.is_read?'':'background:rgba(0,230,118,.04);'}">
+          <div style="width:8px;height:8px;border-radius:50%;background:${n.is_read?'transparent':'#E53935'};margin-top:6px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:14px;">${n.title||''}</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:2px;">${n.message||''}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px;">${date}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }catch(e){
+    wrap.innerHTML = '<p style="text-align:center;color:var(--text2);padding:30px 0;">Could not load notifications.</p>';
+  }
+}
+
+window.markNotifRead = async function(id){
+  try{
+    await api('/api/notifications/'+id+'/read', { method:'PATCH' });
+    loadNotifications();
+    refreshNotifBadge();
+  }catch(e){
+    toast('Network error. Try again.');
+  }
+}
+
+window.markAllNotifsRead = async function(){
+  try{
+    await api('/api/notifications/read-all', { method:'PATCH' });
+    loadNotifications();
+    refreshNotifBadge();
+  }catch(e){
+    toast('Network error. Try again.');
+  }
+}
+
+// NOTIFICATION PREFERENCES
+window.loadNotifPrefs = async function(){
+  try{
+    const res = await api('/api/notifications/preferences');
+    const data = await res.json();
+    if(!data.success) return;
+    const p = data.data;
+    setPrefTrack('purchase', p.purchase_enabled !== false);
+    setPrefTrack('wallet', p.wallet_enabled !== false);
+    setPrefTrack('promotion', p.promotions_enabled !== false);
+  }catch(e){
+    toast('Could not load notification preferences');
+  }
+}
+
+function setPrefTrack(category, on){
+  const track = byId('prefTrack_'+category);
+  if(!track) return;
+  if(on) track.classList.add('on'); else track.classList.remove('on');
+}
+
+const PREF_FIELD = {purchase:'purchase_enabled', wallet:'wallet_enabled', promotion:'promotions_enabled'};
+
+window.toggleNotifPref = async function(category){
+  const track = byId('prefTrack_'+category);
+  const wasOn = track.classList.contains('on');
+  const nowOn = !wasOn;
+  setPrefTrack(category, nowOn); // optimistic UI update
+
+  try{
+    const res = await api('/api/notifications/preferences', {
+      method:'PATCH',
+      body: JSON.stringify({ [PREF_FIELD[category]]: nowOn })
+    });
+    const data = await res.json();
+    if(!data.success){
+      setPrefTrack(category, wasOn); // revert
+      toast('❌ ' + (data?.message || 'Could not update preference'));
+    }
+  }catch(e){
+    setPrefTrack(category, wasOn); // revert
     toast('Network error. Try again.');
   }
 }
