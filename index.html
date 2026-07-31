@@ -1986,6 +1986,7 @@ window.loadNotifications = async function(){
 }
 
 window.markNotifRead = async function(id){
+  window.__lastAction = 'markNotifRead id='+id;
   try{
     await api('/api/notifications/'+id+'/read', { method:'PATCH' });
     loadNotifications();
@@ -2185,6 +2186,25 @@ window.addEventListener('offline',()=>{byId('offlineMsg').style.display='flex';}
 
 // HELPERS
 function byId(id){return document.getElementById(id);}
+
+// ===== TEMPORARY DEBUG — remove after we find the reload bug =====
+(function(){
+  const dbg = localStorage.getItem('quicktop_debug_reload');
+  if(dbg){
+    console.warn('⚠️⚠️⚠️ PAGE WAS RELOADED — last known state before reload:', JSON.parse(dbg));
+    localStorage.removeItem('quicktop_debug_reload');
+  }
+})();
+window.addEventListener('beforeunload', function(){
+  try{
+    localStorage.setItem('quicktop_debug_reload', JSON.stringify({
+      time: new Date().toISOString(),
+      lastAction: window.__lastAction || 'unknown',
+      stack: new Error().stack
+    }));
+  }catch(err){}
+});
+// ===== END TEMPORARY DEBUG =====
 function val(id){return (byId(id)?.value||'').trim();}
 function hide(id){const el=byId(id);if(el)el.style.display='none';}
 function show(id){const el=byId(id);if(el)el.style.display='flex';}
