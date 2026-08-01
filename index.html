@@ -1697,19 +1697,19 @@ window.submitChangePin = async function(){
 window.closeFund=function(){byId('fundModal').classList.remove('show');}
 
 // INFO MODAL (FAQ / Privacy / Terms)
-const faqContent = `
+window.faqContent = `
   <p><strong>How do I fund my wallet?</strong><br>Tap "Fund" on your dashboard or profile, enter an amount, and pay securely with Paystack.</p>
   <p><strong>What if my airtime/data purchase fails?</strong><br>Your wallet is automatically refunded if a purchase can't be completed.</p>
   <p><strong>How long does funding take?</strong><br>Card payments reflect instantly once verified.</p>
   <p><strong>Who do I contact for help?</strong><br>Use the "Contact Support" option to chat with us on WhatsApp.</p>
 `;
-const privacyContent = `
+window.privacyContent = `
   <p style="color:var(--danger);font-weight:700;">⚠️ Draft placeholder — replace with a reviewed Privacy Policy before public launch.</p>
   <p>QuickTop collects your name, email, phone number, and transaction data to provide airtime, data, and bill payment services.</p>
   <p>We do not sell your personal information. Payment details are processed securely by Paystack and are not stored on our servers.</p>
   <p>For questions about your data, contact us via Support.</p>
 `;
-const termsContent = `
+window.termsContent = `
   <p style="color:var(--danger);font-weight:700;">⚠️ Draft placeholder — replace with reviewed Terms of Service before public launch.</p>
   <p>By using QuickTop, you agree to use the service for lawful purposes only. Wallet funds are non-transferable to other users and non-refundable except in cases of failed transactions.</p>
   <p>QuickTop is not liable for delays caused by third-party network providers.</p>
