@@ -385,6 +385,10 @@ select option{background:var(--surface);}
       <div class="wallet-btn" onclick="goTo('historyScreen')"><span class="wi">📋</span>History</div>
     </div>
   </div>
+  <div id="verifyBanner" style="display:none;align-items:center;gap:10px;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.35);border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0;">
+    <div style="font-size:20px;">⚠️</div>
+    <div style="flex:1;font-size:13px;">Please verify your email to secure your account. <span style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="resendVerificationEmail()">Resend link</span></div>
+  </div>
   <div class="section-title">Quick Actions</div>
   <div class="quick-actions">
     <div class="qa" onclick="goTo('dataScreen')"><span class="qa-icon">📶</span><div class="qa-label">Data</div></div>
@@ -744,9 +748,32 @@ select option{background:var(--surface);}
     <div class="menu-item" onclick="showInfoModal('Terms of Service', termsContent)">
       <div class="menu-icon">📄</div><div class="menu-text"><p>Terms of Service</p><span>Usage terms</span></div><span style="color:var(--text2);">›</span>
     </div>
+    <div class="menu-item" onclick="goTo('deleteAccountScreen')">
+      <div class="menu-icon" style="background:rgba(255,83,112,.12);">🗑️</div><div class="menu-text"><p style="color:var(--danger);">Delete Account</p><span>Permanently close your account</span></div><span style="color:var(--text2);">›</span>
+    </div>
   </div>
 
   <div class="logout-btn" onclick="doLogout()">Log Out</div>
+</div>
+
+<!-- DELETE ACCOUNT -->
+<div class="screen" id="deleteAccountScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Delete Account</h2></div>
+  <div class="content">
+    <div id="deleteBlockedNotice" style="display:none;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.35);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;font-size:13px;">
+      ⚠️ You still have <strong id="deleteBlockedBalance">₦0.00</strong> in your wallet. Please spend it or contact support to withdraw it before deleting your account — funds cannot be recovered after deletion.
+    </div>
+    <div id="deleteAllowedSection">
+      <div class="info-box" style="background:rgba(255,83,112,.1);border-color:var(--danger);color:var(--danger);">
+        This permanently closes your QuickTop account. You'll be signed out immediately and won't be able to sign back in with this email. This cannot be undone from the app — you'd need to contact support to restore it.
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label>Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="deleteConfirmInput" placeholder="DELETE" oninput="checkDeleteConfirmInput()"/>
+      </div>
+      <button class="btn" id="deleteAccountBtn" style="width:100%;margin-top:10px;background:var(--danger);color:#fff;opacity:.5;" disabled onclick="doDeleteAccount()">Delete My Account</button>
+    </div>
+  </div>
 </div>
 
 <!-- EDIT PROFILE -->
@@ -1080,6 +1107,9 @@ async function loadProfile() {
     };
 
     updateWalletUI();
+    renderAvatar();
+    renderVerifiedBadge();
+    renderVerifyBanner();
 
   } catch (error) {
 
@@ -1146,9 +1176,8 @@ function enterApp(){
   byId('profPhone').textContent = userProfile.phone || 'Not set';
   renderAvatar();
   byId('profJoined').textContent = userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString('en-NG',{month:'long',year:'numeric'}) : '—';
-  byId('profVerifiedBadge').innerHTML = userProfile.isVerified
-    ? '<span style="color:#1DB954;">Verified ✅</span>'
-    : '<span style="color:var(--text2);">Not verified</span> <span style="color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="resendVerificationEmail()">Resend link</span> · <span style="color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="checkEmailVerified()">I\'ve verified</span>';
+  renderVerifiedBadge();
+  renderVerifyBanner();
   updateWalletUI();
   loadTx();
   checkPinStatus();
@@ -1156,6 +1185,7 @@ function enterApp(){
   initTheme();
   pingBackend();
   refreshNotifBadge();
+  silentCheckEmailVerified();
   setInterval(pingBackend, 10*60*1000);
 }
 
@@ -1226,19 +1256,34 @@ window.resendVerificationEmail = async function(){
   }
 }
 
-window.checkEmailVerified = async function(){
-  if(!currentUser){ return; }
+// Silent background check — runs on app open, no user interaction, no toasts.
+// Picks up verification status if the user clicked the link since we last checked.
+async function silentCheckEmailVerified(){
+  if(!currentUser || userProfile?.isVerified) return;
   try{
     await currentUser.reload();
     if(currentUser.emailVerified){
       await currentUser.getIdToken(true); // force-refresh so the backend sees the updated email_verified claim
       await loadProfile();
-      toast('✅ Email verified!');
-    } else {
-      toast('Not verified yet — check your inbox and tap the link first');
     }
   }catch(e){
-    toast('Could not check verification status');
+    // silent — this is a background check, failures here shouldn't interrupt the user
+  }
+}
+
+function renderVerifiedBadge(){
+  byId('profVerifiedBadge').innerHTML = userProfile.isVerified
+    ? '<span style="color:#1DB954;">Verified ✅</span>'
+    : '<span style="color:var(--text2);">Not verified</span>';
+}
+
+function renderVerifyBanner(){
+  const el = byId('verifyBanner');
+  if(!el) return;
+  if(userProfile && !userProfile.isVerified){
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
   }
 }
 
@@ -1281,8 +1326,56 @@ window.doLogout = async function(){
   showAuth('loginScreen');
 }
 
+// DELETE ACCOUNT
+function prepDeleteAccountScreen(){
+  byId('deleteConfirmInput').value = '';
+  checkDeleteConfirmInput();
+
+  const balance = userProfile?.balance || 0;
+  if(balance > 0){
+    byId('deleteBlockedNotice').style.display = 'block';
+    byId('deleteBlockedBalance').textContent = '₦' + fmt(balance);
+    byId('deleteAllowedSection').style.display = 'none';
+  } else {
+    byId('deleteBlockedNotice').style.display = 'none';
+    byId('deleteAllowedSection').style.display = 'block';
+  }
+}
+
+window.checkDeleteConfirmInput = function(){
+  const btn = byId('deleteAccountBtn');
+  const match = val('deleteConfirmInput') === 'DELETE';
+  btn.disabled = !match;
+  btn.style.opacity = match ? '1' : '.5';
+}
+
+window.doDeleteAccount = async function(){
+  if(val('deleteConfirmInput') !== 'DELETE') return;
+
+  const btn = byId('deleteAccountBtn');
+  btn.textContent = 'Deleting...'; btn.disabled = true;
+
+  try{
+    const res = await api('/api/profile', { method: 'DELETE' });
+    const data = await res.json();
+    if(data.success === true){
+      await signOut(auth);
+      hide('nav');
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      showAuth('loginScreen');
+      toast('Your account has been deleted');
+    } else {
+      btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1';
+      toast('❌ ' + (data?.message || 'Could not delete account'));
+    }
+  }catch(e){
+    btn.textContent = 'Delete My Account'; btn.disabled = false; btn.style.opacity = '1';
+    toast('Network error. Try again.');
+  }
+}
+
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null,referScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null,referScreen:null,deleteAccountScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1295,6 +1388,7 @@ window.goTo = function(id, fromPop){
   if(id==='notificationsScreen') loadNotifications();
   if(id==='notifPrefsScreen') loadNotifPrefs();
   if(id==='referScreen') loadReferDashboard();
+  if(id==='deleteAccountScreen') prepDeleteAccountScreen();
   window.scrollTo(0,0);
   if(!fromPop) history.pushState({screen:id}, '', '');
 }
