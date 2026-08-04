@@ -389,6 +389,10 @@ select option{background:var(--surface);}
     <div style="font-size:20px;">⚠️</div>
     <div style="flex:1;font-size:13px;">Please verify your email to secure your account. <span style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="resendVerificationEmail()">Resend link</span></div>
   </div>
+  <div id="iosInstallBanner" style="display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0;">
+    <div style="font-size:20px;">📲</div>
+    <div style="flex:1;font-size:13px;">Add QuickTop to your Home Screen to get notifications and the full app experience: tap <strong>Share</strong> then <strong>"Add to Home Screen."</strong></div>
+  </div>
   <div class="section-title">Quick Actions</div>
   <div class="quick-actions">
     <div class="qa" onclick="goTo('dataScreen')"><span class="qa-icon">📶</span><div class="qa-label">Data</div></div>
@@ -602,6 +606,14 @@ select option{background:var(--surface);}
 <div class="screen" id="notifPrefsScreen">
   <div class="page-header"><div class="back-btn" onclick="goTo('profileScreen')">←</div><h2>Notification Preferences</h2></div>
   <div class="content">
+    <div class="section-title">This Device</div>
+    <div style="background:var(--surface);border-radius:var(--radius);padding:6px 16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;">
+        <div><div style="font-weight:600;font-size:15px;">Push Notifications</div><div style="font-size:12px;color:var(--text2);" id="pushStatusText">Get alerts even when the app is closed</div></div>
+        <div class="pref-track" id="prefTrack_push" onclick="togglePushSubscription()"><div class="pref-thumb"></div></div>
+      </div>
+    </div>
+    <div class="section-title">Categories</div>
     <div style="background:var(--surface);border-radius:var(--radius);padding:6px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--surface2);">
         <div><div style="font-weight:600;font-size:15px;">Purchase Alerts</div><div style="font-size:12px;color:var(--text2);">Airtime, data, cable, electricity updates</div></div>
@@ -941,6 +953,7 @@ let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtim
 
 // BACKEND
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
+const VAPID_PUBLIC_KEY = 'BDjtqlAtUU4EKibQjNaXPjigrFr0u7prZ9Pzeh90hrcqu0nD89_URgPWwrizYTpJhssf193RsFvNW78VPrzPXP0';
 async function api(path, options = {}) {
   const user = auth.currentUser;
 
@@ -1178,6 +1191,7 @@ function enterApp(){
   byId('profJoined').textContent = userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString('en-NG',{month:'long',year:'numeric'}) : '—';
   renderVerifiedBadge();
   renderVerifyBanner();
+  renderIOSInstallBanner();
   updateWalletUI();
   loadTx();
   checkPinStatus();
@@ -2283,6 +2297,7 @@ window.loadNotifPrefs = async function(){
   }catch(e){
     toast('Could not load notification preferences');
   }
+  await refreshPushToggleState();
 }
 
 function setPrefTrack(category, on){
@@ -2312,6 +2327,105 @@ window.toggleNotifPref = async function(category){
   }catch(e){
     setPrefTrack(category, wasOn); // revert
     toast('Network error. Try again.');
+  }
+}
+
+// PUSH SUBSCRIPTION
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isStandalonePWA(){
+  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+}
+function renderIOSInstallBanner(){
+  const el = byId('iosInstallBanner');
+  if(!el) return;
+  el.style.display = (isIOSDevice() && !isStandalonePWA()) ? 'flex' : 'none';
+}
+function pushIsSupported(){
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++){ outputArray[i] = rawData.charCodeAt(i); }
+  return outputArray;
+}
+
+async function refreshPushToggleState(){
+  if(!pushIsSupported()){
+    setPrefTrack('push', false);
+    byId('pushStatusText').textContent = isIOSDevice() && !isStandalonePWA()
+      ? 'Add QuickTop to your Home Screen to enable this'
+      : 'Not supported in this browser';
+    return;
+  }
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    setPrefTrack('push', !!sub);
+    byId('pushStatusText').textContent = 'Get alerts even when the app is closed';
+  }catch(e){
+    setPrefTrack('push', false);
+  }
+}
+
+window.togglePushSubscription = async function(){
+  const track = byId('prefTrack_push');
+  const currentlyOn = track.classList.contains('on');
+
+  if(!pushIsSupported()){
+    if(isIOSDevice() && !isStandalonePWA()){
+      toast('📱 Tap the Share icon, then "Add to Home Screen" to enable push notifications on iPhone');
+    } else {
+      toast('Push notifications aren\'t supported in this browser');
+    }
+    return;
+  }
+
+  if(currentlyOn){
+    // Turning off: unsubscribe locally. (Dead subscriptions left on the
+    // server get cleaned up automatically the next time a send to them fails.)
+    try{
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if(sub) await sub.unsubscribe();
+    }catch(e){}
+    setPrefTrack('push', false);
+    return;
+  }
+
+  // Turning on: request permission, subscribe, save to backend
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      toast(permission === 'denied' ? 'Notifications blocked — enable them in your browser settings' : 'Permission not granted');
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    const res = await api('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+    const data = await res.json();
+
+    if(data.success === true){
+      setPrefTrack('push', true);
+      toast('🔔 Push notifications enabled');
+    } else {
+      await sub.unsubscribe();
+      toast('❌ ' + (data?.message || 'Could not enable push notifications'));
+    }
+  }catch(e){
+    toast('Could not enable push notifications');
   }
 }
 
