@@ -38,6 +38,10 @@ input:focus{border-color:var(--accent);}
 .admin-email{font-size:13px;color:var(--text2);}
 .logout-link{color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;background:none;border:none;font-family:inherit;}
 
+.topbar-nav{display:flex;gap:4px;margin-left:20px;}
+.nav-link{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;}
+.nav-link.active{background:rgba(0,230,118,.12);color:var(--accent);}
+
 .dash-wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px;}
 .dash-title{font-size:22px;font-weight:800;margin-bottom:4px;}
 .dash-sub{color:var(--text2);font-size:14px;margin-bottom:24px;}
@@ -60,6 +64,40 @@ input:focus{border-color:var(--accent);}
 
 .dash-loading{text-align:center;color:var(--text2);padding:60px 0;font-size:14px;}
 .dash-error{text-align:center;color:var(--danger);padding:60px 20px;font-size:14px;}
+
+/* KYC LIST */
+.kyc-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;}
+.kyc-avatar{width:42px;height:42px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;}
+.kyc-info{flex:1;min-width:0;}
+.kyc-name{font-weight:700;font-size:14px;}
+.kyc-meta{font-size:12px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.kyc-date{font-size:11px;color:var(--text2);margin-top:2px;}
+.status-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.status-badge.PENDING{background:rgba(255,193,7,.12);color:var(--warn);}
+.status-badge.VERIFIED{background:rgba(0,230,118,.12);color:var(--accent);}
+.status-badge.REJECTED{background:rgba(255,83,112,.1);color:var(--danger);}
+.view-btn{background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:10px;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal-box{width:100%;max-width:520px;max-height:85vh;overflow-y:auto;background:var(--surface);border-radius:var(--radius);padding:24px;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-title{font-size:18px;font-weight:800;}
+.modal-close{cursor:pointer;color:var(--text2);font-size:22px;line-height:1;}
+.kyc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--surface2);font-size:13px;}
+.kyc-row span:first-child{color:var(--text2);}
+.kyc-row span:last-child{font-weight:600;text-align:right;max-width:60%;}
+.kyc-images{display:flex;gap:10px;margin:14px 0;}
+.kyc-images a{flex:1;display:block;}
+.kyc-images img{width:100%;height:110px;object-fit:cover;border-radius:10px;border:1px solid var(--surface2);}
+.kyc-images .img-label{font-size:11px;color:var(--text2);margin-top:4px;text-align:center;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+.btn-approve{flex:1;background:var(--accent);color:#0A0F1E;border:none;border-radius:var(--radius-sm);padding:12px;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-reject{flex:1;background:none;color:var(--danger);border:1.5px solid var(--danger);border-radius:var(--radius-sm);padding:12px;font-size:14px;font-weight:700;cursor:pointer;}
+.reject-reason-box{margin-top:14px;}
+.reject-reason-box textarea{width:100%;background:var(--bg);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:12px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical;min-height:70px;outline:none;}
+.reject-reason-box textarea:focus{border-color:var(--danger);}
 
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
@@ -98,6 +136,10 @@ input:focus{border-color:var(--accent);}
     <div class="topbar-left">
       <div class="topbar-logo">Quick<span>Top</span> Admin</div>
       <div class="topbar-badge">STAFF ONLY</div>
+      <div class="topbar-nav">
+        <div class="nav-link active" id="navDashboard" onclick="showAdminSection('dashboard')">Dashboard</div>
+        <div class="nav-link" id="navKyc" onclick="showAdminSection('kyc')">KYC Review</div>
+      </div>
     </div>
     <div class="topbar-right">
       <div class="admin-email" id="adminEmailLabel"></div>
@@ -105,15 +147,40 @@ input:focus{border-color:var(--accent);}
     </div>
   </div>
 
-  <div class="dash-wrap">
-    <div class="dash-title">Dashboard</div>
-    <div class="dash-sub">Platform overview, updated live from your backend.</div>
+  <div id="dashboardSection">
+    <div class="dash-wrap">
+      <div class="dash-title">Dashboard</div>
+      <div class="dash-sub">Platform overview, updated live from your backend.</div>
 
-    <div id="dashContent">
-      <div class="dash-loading">Loading dashboard...</div>
+      <div id="dashContent">
+        <div class="dash-loading">Loading dashboard...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="kycSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">KYC Review</div>
+      <div class="dash-sub">Review identity verification submissions.</div>
+
+      <div id="kycListWrap">
+        <div class="dash-loading">Loading submissions...</div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- KYC DETAIL MODAL -->
+<div class="modal-bg" id="kycModal" onclick="if(event.target===this)closeKycModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">KYC Submission</div>
+      <div class="modal-close" onclick="closeKycModal()">×</div>
+    </div>
+    <div id="kycModalBody"></div>
+  </div>
+</div>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -246,6 +313,166 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 });
+
+// SECTION SWITCHING
+window.showAdminSection = function(section){
+  document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+  byId(section === 'dashboard' ? 'navDashboard' : 'navKyc').classList.add('active');
+  hide('dashboardSection');
+  hide('kycSection');
+  if(section === 'dashboard'){
+    show('dashboardSection');
+  } else {
+    show('kycSection');
+    loadKycList();
+  }
+}
+
+// KYC REVIEW
+let kycListCache = [];
+
+async function loadKycList(){
+  const wrap = byId('kycListWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading submissions...</div>';
+
+  try{
+    const res = await api('/api/admin/kyc');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load submissions: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    kycListCache = data.data || [];
+
+    if(!kycListCache.length){
+      wrap.innerHTML = '<div class="dash-loading">No KYC submissions yet.</div>';
+      return;
+    }
+
+    wrap.innerHTML = kycListCache.map(k => {
+      const initial = (k.full_name || k.email || '?')[0].toUpperCase();
+      const status = k.verification_status || 'PENDING';
+      const date = k.created_at ? new Date(k.created_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '';
+      return `
+        <div class="kyc-card">
+          <div class="kyc-avatar">${initial}</div>
+          <div class="kyc-info">
+            <div class="kyc-name">${k.full_name || 'Unknown'}</div>
+            <div class="kyc-meta">${k.email || ''} · ${k.phone || ''}</div>
+            <div class="kyc-date">Submitted ${date}</div>
+          </div>
+          <div class="status-badge ${status}">${status}</div>
+          <button class="view-btn" onclick="openKycDetail(${k.id})">View</button>
+        </div>
+      `;
+    }).join('');
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.openKycDetail = function(id){
+  const k = kycListCache.find(x => x.id === id);
+  if(!k) return;
+
+  const status = k.verification_status || 'PENDING';
+  const rows = [
+    ['Name', k.full_name || '—'],
+    ['Email', k.email || '—'],
+    ['Phone', k.phone || '—'],
+    ['BVN', k.bvn || '—'],
+    ['NIN', k.nin || '—'],
+    ['Address', k.address || '—'],
+    ['ID Type', k.id_type || '—'],
+    ['ID Number', k.id_number || '—']
+  ];
+
+  let html = `<div class="status-badge ${status}" style="margin-bottom:14px;display:inline-block;">${status}</div>`;
+  if(status === 'REJECTED' && k.rejection_reason){
+    html += `<div class="dash-error" style="text-align:left;padding:10px 12px;background:rgba(255,83,112,.1);border-radius:8px;margin-bottom:14px;">Reason: ${k.rejection_reason}</div>`;
+  }
+
+  html += rows.map(r => `<div class="kyc-row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+
+  html += `
+    <div class="kyc-images">
+      <a href="${k.id_image_url || '#'}" target="_blank">
+        <img src="${k.id_image_url || ''}" onerror="this.style.opacity=0.2"/>
+        <div class="img-label">ID Card</div>
+      </a>
+      <a href="${k.selfie_url || '#'}" target="_blank">
+        <img src="${k.selfie_url || ''}" onerror="this.style.opacity=0.2"/>
+        <div class="img-label">Selfie</div>
+      </a>
+    </div>
+  `;
+
+  if(status === 'PENDING'){
+    html += `
+      <div class="modal-actions">
+        <button class="btn-approve" onclick="approveKyc(${k.id})">Approve</button>
+        <button class="btn-reject" onclick="showRejectBox(${k.id})">Reject</button>
+      </div>
+      <div class="reject-reason-box hidden" id="rejectBox">
+        <textarea id="rejectReasonInput" placeholder="Reason for rejection (shown to the user)"></textarea>
+        <button class="btn-reject" style="width:100%;margin-top:8px;" onclick="confirmRejectKyc(${k.id})">Confirm Rejection</button>
+      </div>
+    `;
+  }
+
+  byId('kycModalBody').innerHTML = html;
+  byId('kycModal').classList.add('show');
+}
+
+window.closeKycModal = function(){
+  byId('kycModal').classList.remove('show');
+}
+
+window.showRejectBox = function(id){
+  show('rejectBox');
+  byId('rejectReasonInput').focus();
+}
+
+window.approveKyc = async function(id){
+  if(!confirm('Approve this KYC submission?')) return;
+
+  try{
+    const res = await api(`/api/admin/kyc/${id}/approve`, { method:'PATCH' });
+    const data = await res.json();
+    if(data.success){
+      closeKycModal();
+      await loadKycList();
+    } else {
+      alert('Could not approve: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
+
+window.confirmRejectKyc = async function(id){
+  const reason = byId('rejectReasonInput').value.trim();
+  if(!reason){ alert('Please enter a reason for rejection'); return; }
+
+  try{
+    const res = await api(`/api/admin/kyc/${id}/reject`, {
+      method:'PATCH',
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    if(data.success){
+      closeKycModal();
+      await loadKycList();
+    } else {
+      alert('Could not reject: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
 </script>
 </body>
 </html>
