@@ -206,10 +206,15 @@ function hide(id){ byId(id).classList.add('hidden'); }
 function val(id){ return (byId(id)?.value||'').trim(); }
 function fmt(n){ return Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-async function api(path, options = {}){
+async function api(path, options = {}) {
   const user = auth.currentUser;
-  if(!user) throw new Error("Not signed in");
-  const token = await user.getIdToken();
+  if (!user) throw new Error("Not signed in");
+
+  const token = await user.getIdToken(true);
+
+  console.log("========== FIREBASE TOKEN ==========");
+  console.log(token);
+
   return fetch(`${BACKEND}${path}`, {
     ...options,
     headers: {
