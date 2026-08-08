@@ -139,6 +139,19 @@ input:focus{border-color:var(--accent);}
 .tx-amount{font-weight:800;font-size:14px;white-space:nowrap;}
 .btn-reverse{background:none;color:var(--danger);border:1.5px solid var(--danger);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:10px;}
 
+/* SERVICES TOGGLE */
+.service-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:18px;margin-bottom:10px;}
+.service-info{flex:1;}
+.service-name{font-weight:700;font-size:15px;}
+.service-meta{font-size:12px;color:var(--text2);margin-top:3px;}
+.toggle-switch{position:relative;width:48px;height:28px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface2);border-radius:28px;transition:.2s;}
+.toggle-slider:before{position:absolute;content:"";height:20px;width:20px;left:4px;bottom:4px;background:var(--text);border-radius:50%;transition:.2s;}
+.toggle-switch input:checked + .toggle-slider{background:var(--accent);}
+.toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px);background:#0A0F1E;}
+.toggle-switch input:disabled + .toggle-slider{opacity:.5;cursor:default;}
+
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
   .admin-email{display:none;}
@@ -181,6 +194,7 @@ input:focus{border-color:var(--accent);}
         <div class="nav-link" id="navKyc" onclick="showAdminSection('kyc')">KYC Review</div>
         <div class="nav-link" id="navUsers" onclick="showAdminSection('users')">Users</div>
         <div class="nav-link" id="navTransactions" onclick="showAdminSection('transactions')">Transactions</div>
+        <div class="nav-link" id="navServices" onclick="showAdminSection('services')">Services</div>
       </div>
     </div>
     <div class="topbar-right">
@@ -274,6 +288,17 @@ input:focus{border-color:var(--accent);}
         <button class="page-btn" id="txPrevPageBtn" onclick="changeTxPage(-1)">← Prev</button>
         <div class="page-label" id="txPageLabel"></div>
         <button class="page-btn" id="txNextPageBtn" onclick="changeTxPage(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="servicesSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Services</div>
+      <div class="dash-sub">Enable or disable purchase services platform-wide.</div>
+
+      <div id="servicesListWrap">
+        <div class="dash-loading">Loading services...</div>
       </div>
     </div>
   </div>
@@ -455,12 +480,13 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
   hide('usersSection');
   hide('transactionsSection');
+  hide('servicesSection');
   if(section === 'dashboard'){
     show('dashboardSection');
   } else if(section === 'kyc'){
@@ -470,10 +496,13 @@ window.showAdminSection = function(section){
     show('usersSection');
     usersPage = 1;
     loadUsers();
-  } else {
+  } else if(section === 'transactions'){
     show('transactionsSection');
     txPage = 1;
     loadTransactions();
+  } else {
+    show('servicesSection');
+    loadServices();
   }
 }
 
@@ -1077,6 +1106,94 @@ window.reverseTx = async function(reference){
     }
   }catch(e){
     alert('Network error. Try again.');
+  }
+}
+
+// SERVICES
+const SERVICE_LABELS = {
+  AIRTIME: 'Airtime',
+  DATA: 'Data',
+  ELECTRICITY: 'Electricity',
+  CABLE_TV: 'Cable TV'
+};
+
+async function loadServices(){
+  const wrap = byId('servicesListWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading services...</div>';
+
+  try{
+    const res = await api('/api/admin/services');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load services: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const services = data.data || [];
+
+    if(!services.length){
+      wrap.innerHTML = '<div class="dash-error">No service rows found. Has the migration been run?</div>';
+      return;
+    }
+
+    wrap.innerHTML = services.map(s => {
+      const label = SERVICE_LABELS[s.service_name] || s.service_name;
+      const updated = s.updated_at ? new Date(s.updated_at).toLocaleString('en-NG') : 'Never';
+      return `
+        <div class="service-card">
+          <div class="service-info">
+            <div class="service-name">${esc(label)}</div>
+            <div class="service-meta">Last changed: ${updated}</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" ${s.is_enabled ? 'checked' : ''} onchange="toggleService('${s.service_name}', this)"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `;
+    }).join('');
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.toggleService = async function(serviceName, checkboxEl){
+  const enabling = checkboxEl.checked;
+  const label = SERVICE_LABELS[serviceName] || serviceName;
+
+  const confirmed = confirm(
+    enabling
+      ? `Enable ${label}? Customers will be able to purchase it again immediately.`
+      : `Disable ${label}? Customers will be blocked from purchasing it immediately.`
+  );
+
+  if(!confirmed){
+    // revert the toggle visually since the change was cancelled
+    checkboxEl.checked = !enabling;
+    return;
+  }
+
+  checkboxEl.disabled = true;
+
+  try{
+    const res = await api(`/api/admin/services/${serviceName}/toggle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_enabled: enabling })
+    });
+    const data = await res.json();
+    if(data.success){
+      await loadServices();
+    } else {
+      alert('Could not update service: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !enabling;
+      checkboxEl.disabled = false;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !enabling;
+    checkboxEl.disabled = false;
   }
 }
 </script>
