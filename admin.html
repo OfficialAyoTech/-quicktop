@@ -131,6 +131,14 @@ input:focus{border-color:var(--accent);}
 .wallet-msg.err{color:var(--danger);}
 .wallet-msg.ok{color:var(--accent);}
 
+/* TRANSACTIONS SECTION */
+.status-badge.successful{background:rgba(0,230,118,.12);color:var(--accent);}
+.status-badge.failed{background:rgba(255,83,112,.1);color:var(--danger);}
+.status-badge.pending{background:rgba(255,193,7,.12);color:var(--warn);}
+.status-badge.reversed{background:rgba(138,147,168,.15);color:var(--text2);}
+.tx-amount{font-weight:800;font-size:14px;white-space:nowrap;}
+.btn-reverse{background:none;color:var(--danger);border:1.5px solid var(--danger);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;margin-left:10px;}
+
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
   .admin-email{display:none;}
@@ -172,6 +180,7 @@ input:focus{border-color:var(--accent);}
         <div class="nav-link active" id="navDashboard" onclick="showAdminSection('dashboard')">Dashboard</div>
         <div class="nav-link" id="navKyc" onclick="showAdminSection('kyc')">KYC Review</div>
         <div class="nav-link" id="navUsers" onclick="showAdminSection('users')">Users</div>
+        <div class="nav-link" id="navTransactions" onclick="showAdminSection('transactions')">Transactions</div>
       </div>
     </div>
     <div class="topbar-right">
@@ -236,6 +245,48 @@ input:focus{border-color:var(--accent);}
         <button class="page-btn" id="nextPageBtn" onclick="changeUsersPage(1)">Next →</button>
       </div>
     </div>
+  </div>
+
+  <div id="transactionsSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Transactions</div>
+      <div class="dash-sub">Search, filter, and manage transactions.</div>
+
+      <div class="users-toolbar">
+        <input type="text" id="txSearchInput" placeholder="Search reference, name, or email..." onkeydown="if(event.key==='Enter')applyTxFilters()"/>
+        <select id="txStatusFilter" onchange="applyTxFilters()">
+          <option value="">All Statuses</option>
+          <option value="successful">Successful</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+          <option value="reversed">Reversed</option>
+        </select>
+        <input type="text" id="txServiceFilter" placeholder="Service (e.g. AIRTIME)" onkeydown="if(event.key==='Enter')applyTxFilters()" style="max-width:170px;"/>
+        <input type="text" id="txProviderFilter" placeholder="Provider" onkeydown="if(event.key==='Enter')applyTxFilters()" style="max-width:140px;"/>
+        <input type="text" id="txTypeFilter" placeholder="Type" onkeydown="if(event.key==='Enter')applyTxFilters()" style="max-width:120px;"/>
+      </div>
+
+      <div id="txListWrap">
+        <div class="dash-loading">Loading transactions...</div>
+      </div>
+
+      <div class="pagination hidden" id="txPagination">
+        <button class="page-btn" id="txPrevPageBtn" onclick="changeTxPage(-1)">← Prev</button>
+        <div class="page-label" id="txPageLabel"></div>
+        <button class="page-btn" id="txNextPageBtn" onclick="changeTxPage(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION DETAIL MODAL -->
+<div class="modal-bg" id="txModal" onclick="if(event.target===this)closeTxModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Transaction Detail</div>
+      <div class="modal-close" onclick="closeTxModal()">×</div>
+    </div>
+    <div id="txModalBody"></div>
   </div>
 </div>
 
@@ -404,20 +455,25 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
   hide('usersSection');
+  hide('transactionsSection');
   if(section === 'dashboard'){
     show('dashboardSection');
   } else if(section === 'kyc'){
     show('kycSection');
     loadKycList();
-  } else {
+  } else if(section === 'users'){
     show('usersSection');
     usersPage = 1;
     loadUsers();
+  } else {
+    show('transactionsSection');
+    txPage = 1;
+    loadTransactions();
   }
 }
 
@@ -872,6 +928,152 @@ window.activateUser = async function(id){
       await loadUsers();
     } else {
       alert('Could not activate: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
+
+// TRANSACTIONS
+let txListCache = [];
+let txPage = 1;
+let txTotalPages = 1;
+
+function buildTxQuery(){
+  const params = new URLSearchParams();
+  params.set('page', txPage);
+  params.set('limit', 20);
+
+  const search = val('txSearchInput');
+  const status = val('txStatusFilter');
+  const service = val('txServiceFilter');
+  const provider = val('txProviderFilter');
+  const transaction_type = val('txTypeFilter');
+
+  if(search) params.set('search', search);
+  if(status) params.set('status', status);
+  if(service) params.set('service', service);
+  if(provider) params.set('provider', provider);
+  if(transaction_type) params.set('transaction_type', transaction_type);
+
+  return params.toString();
+}
+
+window.applyTxFilters = function(){
+  txPage = 1;
+  loadTransactions();
+}
+
+window.changeTxPage = function(delta){
+  const next = txPage + delta;
+  if(next < 1 || next > txTotalPages) return;
+  txPage = next;
+  loadTransactions();
+}
+
+async function loadTransactions(){
+  const wrap = byId('txListWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading transactions...</div>';
+  hide('txPagination');
+
+  try{
+    const res = await api(`/api/admin/transactions?${buildTxQuery()}`);
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load transactions: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    txListCache = (data.data && data.data.transactions) || [];
+    const pagination = (data.data && data.data.pagination) || { page:1, totalPages:1 };
+    txPage = pagination.page;
+    txTotalPages = pagination.totalPages || 1;
+
+    if(!txListCache.length){
+      wrap.innerHTML = '<div class="dash-loading">No transactions match these filters.</div>';
+      return;
+    }
+
+    wrap.innerHTML = txListCache.map(t => {
+      const status = t.status || 'pending';
+      const date = t.created_at ? new Date(t.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      return `
+        <div class="kyc-card">
+          <div class="kyc-info">
+            <div class="kyc-name">${esc(t.full_name || 'Unknown')} <span style="color:var(--text2);font-weight:400;">· ${esc(t.service || '')}</span></div>
+            <div class="kyc-meta">${esc(t.reference || '')}</div>
+            <div class="kyc-date">${date}</div>
+          </div>
+          <div class="tx-amount">₦${fmt(t.amount)}</div>
+          <div class="status-badge ${status}">${status}</div>
+          <button class="view-btn" onclick="openTxDetail('${t.reference}')">View</button>
+        </div>
+      `;
+    }).join('');
+
+    if(txTotalPages > 1){
+      show('txPagination');
+      byId('txPageLabel').textContent = `Page ${txPage} of ${txTotalPages}`;
+      byId('txPrevPageBtn').disabled = txPage <= 1;
+      byId('txNextPageBtn').disabled = txPage >= txTotalPages;
+    }
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.openTxDetail = function(reference){
+  const t = txListCache.find(x => x.reference === reference);
+  if(!t) return;
+
+  const status = t.status || 'pending';
+  const rows = [
+    ['Reference', t.reference || '—'],
+    ['User', t.full_name || '—'],
+    ['Email', t.email || '—'],
+    ['Phone', t.phone || '—'],
+    ['Service', t.service || '—'],
+    ['Provider', t.provider || '—'],
+    ['Type', t.transaction_type || '—'],
+    ['Network', t.network || '—'],
+    ['Amount', '₦' + fmt(t.amount)],
+    ['Balance After', '₦' + fmt(t.balance_after)],
+    ['Narration', t.narration || '—'],
+    ['Date', t.created_at ? new Date(t.created_at).toLocaleString('en-NG') : '—']
+  ];
+
+  let html = `<div class="status-badge ${status}" style="margin-bottom:14px;display:inline-block;">${status}</div>`;
+  html += rows.map(r => `<div class="kyc-row"><span>${r[0]}</span><span>${esc(r[1])}</span></div>`).join('');
+
+  if(status === 'successful'){
+    html += `
+      <div class="modal-actions">
+        <button class="btn-reject" style="width:100%;" onclick="reverseTx('${t.reference}')">Reverse Transaction</button>
+      </div>
+    `;
+  }
+
+  byId('txModalBody').innerHTML = html;
+  byId('txModal').classList.add('show');
+}
+
+window.closeTxModal = function(){
+  byId('txModal').classList.remove('show');
+}
+
+window.reverseTx = async function(reference){
+  if(!confirm(`Reverse transaction ${reference}? This will refund the amount back to the user's wallet and cannot be undone.`)) return;
+
+  try{
+    const res = await api(`/api/admin/transactions/${reference}/reverse`, { method:'POST' });
+    const data = await res.json();
+    if(data.success){
+      closeTxModal();
+      await loadTransactions();
+    } else {
+      alert('Could not reverse: ' + (data.message || 'Unknown error'));
     }
   }catch(e){
     alert('Network error. Try again.');
