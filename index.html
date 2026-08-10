@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="format-detection" content="telephone=no"/>
 <title>QuickTop - Cheap Data &amp; Airtime</title>
 <meta name="description" content="Buy cheap data and airtime instantly. Pay bills and earn rewards on MTN, Airtel, Glo, 9mobile."/>
 <link rel="manifest" href="manifest.json"/>
@@ -383,7 +384,7 @@ select option{background:var(--surface);}
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="topbar-right" id="bellIcon" style="position:relative;" onclick="goTo('notificationsScreen')">🔔
-        <div id="notifBadge" style="display:none;position:absolute;top:6px;right:8px;width:9px;height:9px;background:#E53935;border-radius:50%;border:2px solid var(--bg);"></div>
+        <div id="notifBadge" style="display:none;position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;padding:0 4px;background:#E53935;border-radius:9px;border:2px solid var(--bg);color:#fff;font-size:10px;font-weight:700;line-height:14px;text-align:center;"></div>
       </div>
       <div class="topbar-right" id="homeAvatarIcon" onclick="goTo('profileScreen')">👤</div>
     </div>
@@ -2360,7 +2361,9 @@ window.refreshNotifBadge = async function(){
     const res = await api('/api/notifications/unread-count');
     const data = await res.json();
     const badge = byId('notifBadge');
-    if(data.success && data.data?.unread > 0){
+    const unread = data.success ? (data.data?.unread || 0) : 0;
+    if(unread > 0){
+      badge.textContent = unread > 9 ? '9+' : String(unread);
       badge.style.display = 'block';
     } else {
       badge.style.display = 'none';
