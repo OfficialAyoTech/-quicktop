@@ -246,6 +246,17 @@ select option{background:var(--surface);}
 /* INSTALL BANNER */
 #installBanner{display:none;position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:14px;z-index:200;flex-direction:row;align-items:center;gap:10px;}
 #installBanner.show{display:flex;}
+
+/* HOME CAROUSEL */
+.carousel-wrap{margin-bottom:16px;}
+.carousel-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;-ms-overflow-style:none;scrollbar-width:none;}
+.carousel-track::-webkit-scrollbar{display:none;}
+.carousel-slide{scroll-snap-align:start;flex:0 0 100%;background:var(--surface);border:1px solid var(--surface2);border-radius:16px;padding:20px;min-height:100px;display:flex;flex-direction:column;justify-content:center;}
+.carousel-title{font-weight:700;font-size:15px;margin-bottom:4px;}
+.carousel-sub{color:var(--text2);font-size:12px;}
+.carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+.carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--surface2);transition:background .2s;}
+.carousel-dot.active{background:var(--accent);}
 </style>
 </head>
 <body>
@@ -392,6 +403,23 @@ select option{background:var(--surface);}
   <div id="iosInstallBanner" style="display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0;">
     <div style="font-size:20px;">📲</div>
     <div style="flex:1;font-size:13px;">Add QuickTop to your Home Screen to get notifications and the full app experience: tap <strong>Share</strong> then <strong>"Add to Home Screen."</strong></div>
+  </div>
+  <div class="carousel-wrap">
+    <div class="carousel-track" id="homeCarousel">
+      <div class="carousel-slide" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">
+        <div class="carousel-title" style="color:var(--bg);">Refer and earn ₦500</div>
+        <div class="carousel-sub" style="color:var(--bg);opacity:.85;">Invite friends, get rewarded when they transact</div>
+      </div>
+      <div class="carousel-slide">
+        <div class="carousel-title">Verify your identity</div>
+        <div class="carousel-sub">Unlock higher limits with KYC</div>
+      </div>
+      <div class="carousel-slide">
+        <div class="carousel-title">Never miss a top-up</div>
+        <div class="carousel-sub">Turn on push notifications</div>
+      </div>
+    </div>
+    <div class="carousel-dots" id="homeCarouselDots"></div>
   </div>
   <div class="section-title">Quick Actions</div>
   <div class="quick-actions">
@@ -2848,6 +2876,30 @@ window.installApp=async function(){if(!deferredPrompt)return;deferredPrompt.prom
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
+
+// HOME CAROUSEL
+(function(){
+  const track = byId('homeCarousel');
+  const dotsWrap = byId('homeCarouselDots');
+  if(!track || !dotsWrap) return;
+  const slides = track.querySelectorAll('.carousel-slide');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+    dotsWrap.appendChild(d);
+  });
+  const dots = dotsWrap.children;
+  function updateDots(){
+    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    for (let i = 0; i < dots.length; i++) dots[i].classList.toggle('active', i === idx);
+  }
+  track.addEventListener('scroll', () => requestAnimationFrame(updateDots));
+  let carouselAuto = setInterval(() => {
+    const idx = Math.round(track.scrollLeft / track.clientWidth);
+    track.scrollTo({ left: ((idx + 1) % slides.length) * track.clientWidth, behavior: 'smooth' });
+  }, 3500);
+  track.addEventListener('touchstart', () => clearInterval(carouselAuto));
+})();
 </script>
 </body>
 </html>
