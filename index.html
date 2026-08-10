@@ -406,15 +406,15 @@ select option{background:var(--surface);}
   </div>
   <div class="carousel-wrap">
     <div class="carousel-track" id="homeCarousel">
-      <div class="carousel-slide" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">
+      <div class="carousel-slide" onclick="goTo('referScreen')" style="cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));">
         <div class="carousel-title" style="color:var(--bg);">Refer and earn ₦500</div>
         <div class="carousel-sub" style="color:var(--bg);opacity:.85;">Invite friends, get rewarded when they transact</div>
       </div>
-      <div class="carousel-slide">
+      <div class="carousel-slide" onclick="goTo('kycScreen')" style="cursor:pointer;">
         <div class="carousel-title">Verify your identity</div>
         <div class="carousel-sub">Unlock higher limits with KYC</div>
       </div>
-      <div class="carousel-slide">
+      <div class="carousel-slide" onclick="goTo('notifPrefsScreen')" style="cursor:pointer;">
         <div class="carousel-title">Never miss a top-up</div>
         <div class="carousel-sub">Turn on push notifications</div>
       </div>
@@ -2899,6 +2899,18 @@ if('serviceWorker' in navigator){
     track.scrollTo({ left: ((idx + 1) % slides.length) * track.clientWidth, behavior: 'smooth' });
   }, 3500);
   track.addEventListener('touchstart', () => clearInterval(carouselAuto));
+
+  // Suppress navigation if the tap was actually a swipe/drag
+  let dragStartX = 0, dragStartY = 0, isDrag = false;
+  track.addEventListener('pointerdown', (e) => {
+    dragStartX = e.clientX; dragStartY = e.clientY; isDrag = false;
+  });
+  track.addEventListener('pointermove', (e) => {
+    if (Math.abs(e.clientX - dragStartX) > 8 || Math.abs(e.clientY - dragStartY) > 8) isDrag = true;
+  });
+  track.addEventListener('click', (e) => {
+    if (isDrag) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
 })();
 </script>
 </body>
