@@ -1328,6 +1328,11 @@ window.saveDataPlanPrice = async function(id){
   const msg = byId('dpSyncMsg');
   msg.className = 'wallet-msg ok';
   msg.textContent = 'Price updated successfully.';
+  const btn = document.querySelector(`#dpInput-${id}`).nextElementSibling;
+  const originalText = btn.textContent;
+  btn.textContent = '✅ Saved';
+  btn.style.background = '#00BFA5';
+  setTimeout(() => { btn.textContent = originalText; btn.style.background = ''; }, 1500);
 } else {
       alert('Could not update price: ' + (data.message || 'Unknown error'));
     }
