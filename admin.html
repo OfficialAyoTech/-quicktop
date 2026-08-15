@@ -1322,10 +1322,13 @@ window.saveDataPlanPrice = async function(id){
     });
     const data = await res.json();
     if(data.success){
-      const idx = dpListCache.findIndex(p => p.id === id);
-      if(idx !== -1) dpListCache[idx].sell_price = sell_price;
-      renderDataPlans();
-    } else {
+  const idx = dpListCache.findIndex(p => p.id === id);
+  if(idx !== -1) dpListCache[idx].sell_price = sell_price;
+  renderDataPlans();
+  const msg = byId('dpSyncMsg');
+  msg.className = 'wallet-msg ok';
+  msg.textContent = 'Price updated successfully.';
+} else {
       alert('Could not update price: ' + (data.message || 'Unknown error'));
     }
   }catch(e){
