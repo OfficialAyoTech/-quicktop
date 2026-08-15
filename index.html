@@ -2688,8 +2688,8 @@ window.showTxDetails = async function(reference){
     const type = txType(tx);
     const amt = Number(tx.amount)||0;
 
-    const icon = status==='SUCCESS'?'✅':status==='FAILED'?'❌':'⏳';
-    const title = status==='SUCCESS'?'Transaction Successful':status==='FAILED'?'Transaction Failed':'Transaction Pending';
+    const icon = status==='SUCCESSFUL'?'✅':status==='FAILED'?'❌':'⏳';
+    const title = status==='SUCCESSFUL'?'Transaction Successful':status==='FAILED'?'Transaction Failed':'Transaction Pending';
     const subtitle = type==='data'?`${tx.network||''} Data Purchase`:type==='airtime'?`${tx.network||''} Airtime Purchase`:type==='cable'?`${tx.network||''} Cable Subscription`:'Wallet Funding';
 
     byId('txdIcon').textContent = icon;
@@ -2701,7 +2701,7 @@ window.showTxDetails = async function(reference){
     if(tx.phone) rows.push(['Phone', tx.phone]);
     rows.push(['Amount', '₦'+amt.toLocaleString()]);
     rows.push(['Reference', tx.reference]);
-    rows.push(['Status', (status==='SUCCESS'?'✅ ':status==='FAILED'?'❌ ':'⏳ ')+status.charAt(0)+status.slice(1).toLowerCase()]);
+    rows.push(['Status', (status==='SUCCESSFUL'?'✅ ':status==='FAILED'?'❌ ':'⏳ ')+status.charAt(0)+status.slice(1).toLowerCase()]);
     rows.push(['Date', txDateStr(tx)]);
     if(tx.balance_after!==null && tx.balance_after!==undefined) rows.push(['Wallet Balance After', '₦'+Number(tx.balance_after).toLocaleString()]);
 
