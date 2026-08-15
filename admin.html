@@ -152,6 +152,19 @@ input:focus{border-color:var(--accent);}
 .toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px);background:#0A0F1E;}
 .toggle-switch input:disabled + .toggle-slider{opacity:.5;cursor:default;}
 
+/* DATA PLANS */
+.dp-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;flex-wrap:wrap;}
+.dp-info{flex:1;min-width:160px;}
+.dp-name{font-weight:700;font-size:14px;}
+.dp-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.dp-price-col{text-align:right;min-width:90px;}
+.dp-cost{font-size:12px;color:var(--text2);}
+.dp-margin{font-size:12px;font-weight:700;margin-top:2px;}
+.dp-margin.pos{color:var(--accent);}
+.dp-margin.neg{color:var(--danger);}
+.dp-edit-input{width:90px;padding:8px 10px;font-size:13px;text-align:right;}
+.dp-save-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
   .admin-email{display:none;}
@@ -195,6 +208,7 @@ input:focus{border-color:var(--accent);}
         <div class="nav-link" id="navUsers" onclick="showAdminSection('users')">Users</div>
         <div class="nav-link" id="navTransactions" onclick="showAdminSection('transactions')">Transactions</div>
         <div class="nav-link" id="navServices" onclick="showAdminSection('services')">Services</div>
+        <div class="nav-link" id="navDataPlans" onclick="showAdminSection('dataplans')">Data Plans</div>
       </div>
     </div>
     <div class="topbar-right">
@@ -299,6 +313,30 @@ input:focus{border-color:var(--accent);}
 
       <div id="servicesListWrap">
         <div class="dash-loading">Loading services...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dataPlansSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Data Plans</div>
+      <div class="dash-sub">Set sell prices and margins. Cost prices sync from Clubkonnect.</div>
+
+      <div class="users-toolbar">
+        <select id="dpNetworkFilter" onchange="renderDataPlans()">
+          <option value="">All Networks</option>
+          <option value="MTN">MTN</option>
+          <option value="GLO">Glo</option>
+          <option value="AIRTEL">Airtel</option>
+          <option value="9MOBILE">9mobile</option>
+        </select>
+        <button class="page-btn" onclick="syncDataPlans()" id="dpSyncBtn">🔄 Sync from Clubkonnect</button>
+      </div>
+
+      <div id="dpSyncMsg" class="wallet-msg"></div>
+
+      <div id="dataPlansListWrap">
+        <div class="dash-loading">Loading data plans...</div>
       </div>
     </div>
   </div>
@@ -480,13 +518,14 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
   hide('usersSection');
   hide('transactionsSection');
   hide('servicesSection');
+  hide('dataPlansSection');
   if(section === 'dashboard'){
     show('dashboardSection');
   } else if(section === 'kyc'){
@@ -500,9 +539,12 @@ window.showAdminSection = function(section){
     show('transactionsSection');
     txPage = 1;
     loadTransactions();
-  } else {
+  } else if(section === 'services'){
     show('servicesSection');
     loadServices();
+  } else {
+    show('dataPlansSection');
+    loadDataPlans();
   }
 }
 
@@ -1195,6 +1237,127 @@ window.toggleService = async function(serviceName, checkboxEl){
     alert('Network error. Try again.');
     checkboxEl.checked = !enabling;
     checkboxEl.disabled = false;
+  }
+}
+
+// DATA PLANS
+let dpListCache = [];
+
+async function loadDataPlans(){
+  const wrap = byId('dataPlansListWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading data plans...</div>';
+
+  try{
+    const res = await api('/api/admin/data-plans');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load data plans: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    dpListCache = data.data || [];
+
+    if(!dpListCache.length){
+      wrap.innerHTML = '<div class="dash-loading">No data plans yet — click "Sync from Clubkonnect" above.</div>';
+      return;
+    }
+
+    renderDataPlans();
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.renderDataPlans = function(){
+  const wrap = byId('dataPlansListWrap');
+  const networkFilter = val('dpNetworkFilter');
+
+  let plans = dpListCache;
+  if(networkFilter){
+    plans = plans.filter(p => p.network === networkFilter);
+  }
+
+  if(!plans.length){
+    wrap.innerHTML = '<div class="dash-loading">No plans match this filter.</div>';
+    return;
+  }
+
+  wrap.innerHTML = plans.map(p => {
+    const cost = Number(p.cost_price);
+    const sell = Number(p.sell_price);
+    const margin = sell - cost;
+    const marginCls = margin >= 0 ? 'pos' : 'neg';
+    return `
+      <div class="dp-card">
+        <div class="dp-info">
+          <div class="dp-name">${esc(p.network)} · ${esc(p.plan_name)}</div>
+          <div class="dp-meta">Code: ${esc(p.plan_code || '—')}</div>
+        </div>
+        <div class="dp-price-col">
+          <div class="dp-cost">Cost: ₦${fmt(cost)}</div>
+          <div class="dp-margin ${marginCls}">Margin: ₦${fmt(margin)}</div>
+        </div>
+        <input type="number" class="dp-edit-input" id="dpInput-${p.id}" value="${sell}" min="0" step="0.01"/>
+        <button class="dp-save-btn" onclick="saveDataPlanPrice(${p.id})">Save</button>
+      </div>
+    `;
+  }).join('');
+}
+
+window.saveDataPlanPrice = async function(id){
+  const input = byId(`dpInput-${id}`);
+  const sell_price = Number(input.value);
+
+  if(!input.value || isNaN(sell_price) || sell_price < 0){
+    alert('Enter a valid sell price.');
+    return;
+  }
+
+  try{
+    const res = await api(`/api/admin/data-plans/${id}/price`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sell_price })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = dpListCache.findIndex(p => p.id === id);
+      if(idx !== -1) dpListCache[idx].sell_price = sell_price;
+      renderDataPlans();
+    } else {
+      alert('Could not update price: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
+
+window.syncDataPlans = async function(){
+  const btn = byId('dpSyncBtn');
+  const msg = byId('dpSyncMsg');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  msg.className = 'wallet-msg';
+  msg.textContent = '';
+
+  try{
+    const res = await api('/api/admin/data-plans/sync', { method: 'POST' });
+    const data = await res.json();
+    if(data.success){
+      msg.textContent = data.message;
+      msg.classList.add('ok');
+      await loadDataPlans();
+    } else {
+      msg.textContent = data.message || 'Sync failed.';
+      msg.classList.add('err');
+    }
+  }catch(e){
+    msg.textContent = 'Network error. Try again.';
+    msg.classList.add('err');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync from Clubkonnect';
   }
 }
 </script>
