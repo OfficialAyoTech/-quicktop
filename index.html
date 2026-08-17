@@ -511,7 +511,7 @@ select option{background:var(--surface);}
     </div>
     <div class="input-stack">
       <label>Package</label>
-      <select id="cablePackage" onchange="clearCableVerify()" style="width:100%;background:var(--surface);color:var(--text);border:1px solid var(--surface2);border-radius:var(--radius-sm);padding:14px;font-size:15px;"></select>
+      <select id="cablePackage" onchange="onCablePackageChange()" style="width:100%;background:var(--surface);color:var(--text);border:1px solid var(--surface2);border-radius:var(--radius-sm);padding:14px;font-size:15px;"></select>
     </div>
     <div class="input-stack">
       <label>Smart Card / IUC Number</label>
@@ -524,8 +524,8 @@ select option{background:var(--surface);}
       <input type="tel" id="cablePhone" placeholder="080XXXXXXXX" maxlength="11"/>
     </div>
     <div class="input-stack">
-      <label>Amount (₦)</label>
-      <input type="number" id="cableAmt" placeholder="Enter amount" min="100"/>
+      <label>Amount</label>
+      <div id="cablePriceDisplay" style="font-size:18px;font-weight:800;color:var(--accent);">₦0.00</div>
     </div>
     <div class="info-box">📺 Confirm your smart card before subscribing — wrong numbers can't be refunded automatically.</div>
     <button class="btn btn-primary" id="cableBuyBtn" onclick="buyCable()">Subscribe</button>
@@ -1111,31 +1111,36 @@ async function loadPlansForNetwork(net){
   if((dataNet||'MTN').toUpperCase() === key) renderPlans();
 }
 
-// CABLE TV PACKAGES (name shown to user -> code sent to backend, without provider prefix)
-const CABLE_PACKAGES = {
-  DSTV: {
-    'Padi':'PADI','Yanga':'YANGA','Confam':'CONFAM','Compact':'COMPACT',
-    'Compact Plus':'COMPACT-PLUS','Premium':'PREMIUM','Premium French':'PREMIUM-FRENCH',
-    'Asia':'ASIA','Great Wall':'GREATWALL','Indian':'INDIAN'
-  },
-  GOTV: {
-    'Max':'MAX','Jolli':'JOLLI','Jinja':'JINJA','Smallie':'SMALLIE',
-    'Smallie (3 Months)':'SMALLIE-3MONTHS','Smallie (1 Year)':'SMALLIE-1YEAR',
-    'Supa':'SUPA','Supa Plus':'SUPA-PLUS'
-  },
-  STARTIMES: {
-    'Nova':'NOVA','Basic':'BASIC','Smart':'SMART','Classic':'CLASSIC','Super':'SUPER',
-    'Nova (Weekly)':'NOVA-WEEKLY','Basic (Weekly)':'BASIC-WEEKLY','Smart (Weekly)':'SMART-WEEKLY',
-    'Classic (Weekly)':'CLASSIC-WEEKLY','Super (Weekly)':'SUPER-WEEKLY',
-    'Uni 1':'UNI-1','Uni 2':'UNI-2'
-  },
-  SHOWMAX: {
-    'Full (3 Months)':'FULL-3','Mobile Only (3 Months)':'MOBILE-ONLY-3',
-    'Sports Mobile Only (3 Months)':'SPORTS-MOBILE-ONLY-3','Sports Only (1 Month)':'SPORTS-ONLY-1',
-    'Sports Only (3 Months)':'SPORTS-ONLY-3','Mobile Only (6 Months)':'MOBILE-ONLY-6',
-    'Full Only (6 Months)':'FULL-ONLY-6'
+// CABLE TV PACKAGES — fetched live from backend (admin-controlled pricing),
+// same pattern as the data plans cache above. Replaces the old hardcoded
+// CABLE_PACKAGES name->code map (which had no prices at all) so admin
+// sell_price edits show up in the app and the customer can no longer type
+// an arbitrary amount.
+let cablePlanCache = {};
+let cablePlanLoading = {};
+
+async function loadCablePlansForProvider(provider){
+  const key = provider;
+  if(cablePlanCache[key] || cablePlanLoading[key]) return;
+  cablePlanLoading[key] = true;
+  try{
+    const res = await api('/api/cable/plans/'+key);
+    const data = await res.json();
+    if(data.success && Array.isArray(data.data)){
+      cablePlanCache[key] = data.data.map(p=>({
+        name: p.package_name || p.name,
+        code: p.package_code || p.code,
+        price: Number(p.sell_price ?? p.amount ?? p.price ?? 0)
+      }));
+    } else {
+      cablePlanCache[key] = [];
+    }
+  }catch(e){
+    cablePlanCache[key] = [];
   }
-};
+  cablePlanLoading[key] = false;
+  if(cableProvider === key) renderCablePackages();
+}
 
 // NETWORK PREFIX MAP
 const PREFIX = {
@@ -1794,11 +1799,38 @@ window.pickCableProvider = function(provider, el){
 }
 
 function renderCablePackages(){
-  const pkgs = CABLE_PACKAGES[cableProvider] || {};
-  byId('cablePackage').innerHTML = Object.keys(pkgs).map(name=>{
-    const label = name.replace(cableProvider.toUpperCase()+'-','');
-    return `<option value="${name}">${label}</option>`;
-  }).join('');
+  const pkgs = cablePlanCache[cableProvider];
+  const sel = byId('cablePackage');
+
+  if(!pkgs){
+    sel.innerHTML = '<option value="">Loading packages...</option>';
+    loadCablePlansForProvider(cableProvider);
+    updateCablePriceDisplay();
+    return;
+  }
+
+  if(!pkgs.length){
+    sel.innerHTML = '<option value="">No packages available</option>';
+    updateCablePriceDisplay();
+    return;
+  }
+
+  sel.innerHTML = pkgs.map(p=>`<option value="${p.code}">${p.name}</option>`).join('');
+  updateCablePriceDisplay();
+}
+
+window.onCablePackageChange = function(){
+  clearCableVerify();
+  updateCablePriceDisplay();
+}
+
+function updateCablePriceDisplay(){
+  const el = byId('cablePriceDisplay');
+  if(!el) return;
+  const pkgs = cablePlanCache[cableProvider] || [];
+  const code = byId('cablePackage')?.value;
+  const pkg = pkgs.find(p=>p.code===code);
+  el.textContent = pkg ? '₦'+pkg.price.toLocaleString() : '₦0.00';
 }
 
 window.clearCableVerify = function(){
@@ -1842,13 +1874,15 @@ window.buyCable = async function(){
   const smartCardNo = val('cableSmartCard');
   const packageSel = byId('cablePackage');
   const packageCode = packageSel.value;
-  const packageName = packageSel.selectedOptions[0]?.textContent || packageCode;
+  const pkgs = cablePlanCache[cableProvider] || [];
+  const pkg = pkgs.find(p=>p.code===packageCode);
+  const packageName = pkg?.name || packageCode;
   const phone = val('cablePhone');
-  const amount = parseInt(val('cableAmt'));
+  const amount = pkg?.price;
 
   if(!smartCardNo){ toast('Enter smart card number'); return; }
   if(!phone || phone.length<10){ toast('Enter valid phone number'); return; }
-  if(!amount || amount<100){ toast('Minimum amount is ₦100'); return; }
+  if(!pkg || !amount){ toast('Select a valid package'); return; }
 
   const pin = await askPin();
   if(!pin) return;
@@ -1871,7 +1905,7 @@ window.buyCable = async function(){
       await saveBal((userProfile.balance||0)-amount);
       await saveTx({type:'cable', network:cableProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
       showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'cable',account_number:smartCardNo,provider:cableProvider,metadata:{package:packageCode,packageName}});
-      byId('cableSmartCard').value=''; byId('cableAmt').value=''; clearCableVerify();
+      byId('cableSmartCard').value=''; clearCableVerify();
     } else {
       toast('❌ ' + (data?.message || 'Subscription failed'));
     }
