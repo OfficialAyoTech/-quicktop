@@ -428,6 +428,7 @@ select option{background:var(--surface);}
     <div class="qa" onclick="goTo('airtimeScreen')"><span class="qa-icon">📞</span><div class="qa-label">Airtime</div></div>
     <div class="qa" onclick="goTo('cableScreen')"><span class="qa-icon">📺</span><div class="qa-label">Cable TV</div></div>
     <div class="qa" onclick="goTo('electricityScreen')"><span class="qa-icon">💡</span><div class="qa-label">Electricity</div></div>
+    <div class="qa" onclick="goTo('waecScreen')"><span class="qa-icon">🎓</span><div class="qa-label">WAEC</div></div>
     <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎲</span><div class="qa-label">Betting</div></div>
     <div class="qa" onclick="goTo('referScreen')"><span class="qa-icon">🎁</span><div class="qa-label">Reward</div></div>
   </div>
@@ -573,6 +574,23 @@ select option{background:var(--surface);}
     </div>
     <div class="info-box">⚡ Confirm your meter number before purchasing — wrong numbers can't be refunded automatically.</div>
     <button class="btn btn-primary" id="electricityBuyBtn" onclick="buyElectricity()">Buy Electricity</button>
+  </div>
+</div>
+
+<!-- WAEC -->
+<div class="screen" id="waecScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>WAEC Result Checker</h2></div>
+  <div class="content">
+    <div class="input-stack">
+      <label>Phone Number</label>
+      <input type="tel" id="waecPhone" placeholder="080XXXXXXXX" maxlength="11"/>
+    </div>
+    <div class="input-stack">
+      <label>Amount</label>
+      <div id="waecPriceDisplay" style="font-size:18px;font-weight:800;color:var(--accent);">Loading...</div>
+    </div>
+    <div class="info-box">🎓 You'll receive a Serial Number and PIN to check your WAEC result — save them somewhere safe, they're shown only once.</div>
+    <button class="btn btn-primary" id="waecBuyBtn" onclick="buyWaec()">Subscribe</button>
   </div>
 </div>
 
@@ -1631,7 +1649,7 @@ window.submitKyc = async function(){
 }
 
 // NAVIGATION
-const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null,referScreen:null,deleteAccountScreen:null,kycScreen:null};
+const NAVMAP = {homeScreen:'navHome',dataScreen:'navData',airtimeScreen:'navAirtime',historyScreen:'navHistory',profileScreen:'navProfile',successScreen:null,txDetailScreen:null,cableScreen:null,electricityScreen:null,waecScreen:null,createPinScreen:null,changePinScreen:null,editProfileScreen:null,notificationsScreen:null,notifPrefsScreen:null,notifDetailScreen:null,referScreen:null,deleteAccountScreen:null,kycScreen:null};
 window.goTo = function(id, fromPop){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   byId(id).classList.add('active');
@@ -1640,6 +1658,7 @@ window.goTo = function(id, fromPop){
   if(id==='dataScreen') renderPlans();
   if(id==='historyScreen') renderHistoryTx();
   if(id==='cableScreen') renderCablePackages();
+  if(id==='waecScreen') loadWaecPrice();
   if(id==='profileScreen') byId('profBal').textContent=fmt(userProfile?.balance||0);
   if(id==='notificationsScreen') loadNotifications();
   if(id==='notifPrefsScreen') loadNotifPrefs();
@@ -2003,6 +2022,84 @@ window.buyElectricity = async function(){
     }
   }catch(e){
     btn.textContent='Buy Electricity'; btn.disabled=false; hideProc();
+    toast('Network error. Try again.');
+  }
+}
+
+// WAEC
+let waecPrice = null;
+
+async function loadWaecPrice(){
+  const el = byId('waecPriceDisplay');
+  el.textContent = 'Loading...';
+  waecPrice = null;
+  try{
+    const res = await api('/api/waec/price');
+    const data = await res.json();
+    if(data.success && data.data){
+      waecPrice = Number(data.data.sell_price);
+      el.textContent = '₦'+waecPrice.toLocaleString();
+    } else {
+      el.textContent = 'Unavailable';
+    }
+  }catch(e){
+    el.textContent = 'Unavailable';
+  }
+}
+
+window.buyWaec = async function(){
+  const phone = val('waecPhone');
+  if(!phone || phone.length<10){ toast('Enter valid phone number'); return; }
+  if(!waecPrice){ toast('WAEC price unavailable — try again shortly'); return; }
+
+  const pin = await askPin();
+  if(!pin) return;
+
+  const btn = byId('waecBuyBtn');
+  btn.textContent='Processing...'; btn.disabled=true;
+  showProc('Processing Purchase...','Please wait, do not close');
+
+  try{
+    const ref = 'QT' + Date.now();
+    const res = await api('/api/waec/purchase', {
+      method:'POST',
+      body: JSON.stringify({ phone, pin })
+    });
+    const data = await res.json();
+    btn.textContent='Subscribe'; btn.disabled=false; hideProc();
+
+    // The purchase result is nested — a failed provider response (e.g. no
+    // stock) comes back as HTTP 200 with data.success=true but
+    // data.data.success=false, same pattern as cable's INSUFFICIENT_BALANCE
+    // case. Checking only the outer flag would show a false "Success!" screen.
+    const ok = data.success === true && data.data?.success === true;
+
+    if(ok){
+      const amount = waecPrice;
+      const reference = data.data.reference || ref;
+      const card = data.data.pin;
+
+      await saveBal((userProfile.balance||0)-amount);
+      await saveTx({type:'waec', phone, amount, ref:reference, ts:Date.now(), date:now()});
+
+      const rows = [
+        ['Phone', phone],
+        ['Amount', '₦'+amount.toLocaleString()],
+        ['Ref', reference],
+        ['Status', '✅ Successful']
+      ];
+      if(card){
+        rows.push(['Serial No', card.serial]);
+        rows.push(['PIN', card.pin]);
+      }
+
+      showSuccess('WAEC PIN Purchased! ✅', data.data.message || 'Your WAEC Result Checker PIN is ready', rows);
+      byId('waecPhone').value = '';
+    } else {
+      toast('❌ ' + (data.data?.message || data?.message || 'WAEC purchase failed'));
+    }
+  }catch(e){
+    btn.textContent='Subscribe'; btn.disabled=false; hideProc();
     toast('Network error. Try again.');
   }
 }
