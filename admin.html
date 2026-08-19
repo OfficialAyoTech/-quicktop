@@ -165,6 +165,24 @@ input:focus{border-color:var(--accent);}
 .dp-edit-input{width:90px;padding:8px 10px;font-size:13px;text-align:right;}
 .dp-save-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
 
+/* PROMO TOGGLE (compact, inline in dp-card) */
+.promo-toggle-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px;}
+.promo-toggle-label{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.promo-switch{position:relative;width:38px;height:22px;flex-shrink:0;}
+.promo-switch input{opacity:0;width:0;height:0;}
+.promo-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface2);border-radius:22px;transition:.2s;}
+.promo-slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:var(--text);border-radius:50%;transition:.2s;}
+.promo-switch input:checked + .promo-slider{background:var(--warn);}
+.promo-switch input:checked + .promo-slider:before{transform:translateX(16px);background:#0A0F1E;}
+
+/* CASHBACK */
+.cb-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:18px;margin-bottom:12px;}
+.cb-name{font-weight:700;font-size:15px;margin-bottom:14px;}
+.cb-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.cb-field{flex:1;min-width:120px;}
+.cb-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+.cb-field input{padding:10px 12px;font-size:14px;}
+
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
   .admin-email{display:none;}
@@ -211,6 +229,7 @@ input:focus{border-color:var(--accent);}
         <div class="nav-link" id="navDataPlans" onclick="showAdminSection('dataplans')">Data Plans</div>
         <div class="nav-link" id="navCablePlans" onclick="showAdminSection('cableplans')">Cable Plans</div>
         <div class="nav-link" id="navWaec" onclick="showAdminSection('waec')">WAEC</div>
+        <div class="nav-link" id="navCashback" onclick="showAdminSection('cashback')">Cashback</div>
       </div>
     </div>
     <div class="topbar-right">
@@ -375,6 +394,19 @@ input:focus{border-color:var(--accent);}
 
       <div id="waecWrap">
         <div class="dash-loading">Loading WAEC price...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cashbackSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Cashback</div>
+      <div class="dash-sub">Cashback pays out as a % of your margin on each purchase — it can never exceed what you made on the sale. Set the % and minimum purchase per service. To exclude a specific plan from cashback (e.g. a promo), use the Promo toggle on that plan in Data Plans / Cable Plans.</div>
+
+      <div id="cashbackMsg" class="wallet-msg"></div>
+
+      <div id="cashbackWrap">
+        <div class="dash-loading">Loading cashback rates...</div>
       </div>
     </div>
   </div>
@@ -556,7 +588,7 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec', cashback:'navCashback' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
@@ -566,6 +598,7 @@ window.showAdminSection = function(section){
   hide('dataPlansSection');
   hide('cablePlansSection');
   hide('waecSection');
+  hide('cashbackSection');
   if(section === 'dashboard'){
     show('dashboardSection');
   } else if(section === 'kyc'){
@@ -588,9 +621,12 @@ window.showAdminSection = function(section){
   } else if(section === 'cableplans'){
     show('cablePlansSection');
     loadCablePlans();
-  } else {
+  } else if(section === 'waec'){
     show('waecSection');
     loadWaecPrice();
+  } else {
+    show('cashbackSection');
+    loadCashbackRates();
   }
 }
 
@@ -1341,6 +1377,13 @@ window.renderDataPlans = function(){
           <div class="dp-name">${esc(p.network)} · ${esc(p.plan_name)}</div>
           <div class="dp-meta">Code: ${esc(p.plan_code || '—')}</div>
         </div>
+        <div class="promo-toggle-col">
+          <div class="promo-toggle-label">Promo</div>
+          <label class="promo-switch">
+            <input type="checkbox" ${p.is_promotional ? 'checked' : ''} onchange="toggleDataPlanPromo(${p.id}, this)"/>
+            <span class="promo-slider"></span>
+          </label>
+        </div>
         <div class="dp-price-col">
           <div class="dp-cost">Cost: ₦${fmt(cost)}</div>
           <div class="dp-margin ${marginCls}">Margin: ₦${fmt(margin)}</div>
@@ -1384,6 +1427,28 @@ window.saveDataPlanPrice = async function(id){
     }
   }catch(e){
     alert('Network error. Try again.');
+  }
+}
+
+window.toggleDataPlanPromo = async function(id, checkboxEl){
+  const is_promotional = checkboxEl.checked;
+
+  try{
+    const res = await api(`/api/admin/data-plans/${id}/promotional`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_promotional })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = dpListCache.findIndex(p => p.id === id);
+      if(idx !== -1) dpListCache[idx].is_promotional = is_promotional;
+    } else {
+      alert('Could not update promo flag: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !is_promotional;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !is_promotional;
   }
 }
 
@@ -1470,6 +1535,13 @@ window.renderCablePlans = function(){
           <div class="dp-name">${esc(p.provider)} · ${esc(p.package_name)}</div>
           <div class="dp-meta">Code: ${esc(p.package_code || '—')}</div>
         </div>
+        <div class="promo-toggle-col">
+          <div class="promo-toggle-label">Promo</div>
+          <label class="promo-switch">
+            <input type="checkbox" ${p.is_promotional ? 'checked' : ''} onchange="toggleCablePlanPromo(${p.id}, this)"/>
+            <span class="promo-slider"></span>
+          </label>
+        </div>
         <div class="dp-price-col">
           <div class="dp-cost">Cost: ₦${fmt(cost)}</div>
           <div class="dp-margin ${marginCls}">Margin: ₦${fmt(margin)}</div>
@@ -1513,6 +1585,28 @@ window.saveCablePlanPrice = async function(id){
     }
   }catch(e){
     alert('Network error. Try again.');
+  }
+}
+
+window.toggleCablePlanPromo = async function(id, checkboxEl){
+  const is_promotional = checkboxEl.checked;
+
+  try{
+    const res = await api(`/api/admin/cable-packages/${id}/promotional`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_promotional })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = cpListCache.findIndex(p => p.id === id);
+      if(idx !== -1) cpListCache[idx].is_promotional = is_promotional;
+    } else {
+      alert('Could not update promo flag: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !is_promotional;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !is_promotional;
   }
 }
 
@@ -1587,6 +1681,110 @@ window.saveWaecPrice = async function(){
       msg.textContent = 'Price updated successfully.';
     } else {
       alert('Could not update price: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
+
+// CASHBACK
+let cbListCache = [];
+
+const CASHBACK_LABELS = {
+  DATA: 'Data',
+  CABLE_TV: 'Cable TV'
+};
+
+async function loadCashbackRates(){
+  const wrap = byId('cashbackWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading cashback rates...</div>';
+
+  try{
+    const res = await api('/api/admin/cashback-rates');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load cashback rates: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    cbListCache = data.data || [];
+
+    if(!cbListCache.length){
+      wrap.innerHTML = '<div class="dash-loading">No cashback rates found — has the migration been run?</div>';
+      return;
+    }
+
+    renderCashbackRates();
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+function renderCashbackRates(){
+  const wrap = byId('cashbackWrap');
+
+  wrap.innerHTML = cbListCache.map(r => {
+    const label = CASHBACK_LABELS[r.service_name] || r.service_name;
+    return `
+      <div class="cb-card">
+        <div class="cb-name">${esc(label)}</div>
+        <div class="cb-row">
+          <div class="cb-field">
+            <label>Rate (% of margin)</label>
+            <input type="number" id="cbRate-${r.service_name}" value="${Number(r.rate_percent)}" min="0" max="100" step="0.5"/>
+          </div>
+          <div class="cb-field">
+            <label>Min. Purchase (₦)</label>
+            <input type="number" id="cbMin-${r.service_name}" value="${Number(r.min_purchase_amount)}" min="0" step="10"/>
+          </div>
+          <div class="promo-toggle-col">
+            <div class="promo-toggle-label">Enabled</div>
+            <label class="promo-switch">
+              <input type="checkbox" id="cbEnabled-${r.service_name}" ${r.is_enabled ? 'checked' : ''}/>
+              <span class="promo-slider"></span>
+            </label>
+          </div>
+          <button class="dp-save-btn" onclick="saveCashbackRate('${r.service_name}')">Save</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.saveCashbackRate = async function(serviceName){
+  const rateInput = byId(`cbRate-${serviceName}`);
+  const minInput = byId(`cbMin-${serviceName}`);
+  const enabledInput = byId(`cbEnabled-${serviceName}`);
+
+  const rate_percent = Number(rateInput.value);
+  const min_purchase_amount = Number(minInput.value);
+  const is_enabled = enabledInput.checked;
+
+  if(!rateInput.value || isNaN(rate_percent) || rate_percent < 0 || rate_percent > 100){
+    alert('Enter a valid rate between 0 and 100.');
+    return;
+  }
+  if(!minInput.value || isNaN(min_purchase_amount) || min_purchase_amount < 0){
+    alert('Enter a valid minimum purchase amount.');
+    return;
+  }
+
+  try{
+    const res = await api(`/api/admin/cashback-rates/${serviceName}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ rate_percent, min_purchase_amount, is_enabled })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = cbListCache.findIndex(r => r.service_name === serviceName);
+      if(idx !== -1) cbListCache[idx] = data.data;
+      const msg = byId('cashbackMsg');
+      msg.className = 'wallet-msg ok';
+      msg.textContent = 'Cashback rate updated successfully.';
+    } else {
+      alert('Could not update cashback rate: ' + (data.message || 'Unknown error'));
     }
   }catch(e){
     alert('Network error. Try again.');
