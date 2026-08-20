@@ -135,6 +135,9 @@ select option{background:var(--surface);}
 .net-pills::-webkit-scrollbar{display:none;}
 .net-pill{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--surface2);border-radius:50px;padding:10px 16px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;}
 .net-pill.active{border-color:var(--accent);background:rgba(0,230,118,.08);color:var(--accent);}
+.pay-pill{flex:1;text-align:center;padding:12px;border:2px solid var(--surface2);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:var(--surface);}
+.pay-pill.active{border-color:var(--accent);background:rgba(0,230,118,.08);color:var(--accent);}
+.pay-pill.disabled{opacity:.4;cursor:not-allowed;}
 .net-dot{width:10px;height:10px;border-radius:50%;}
 
 /* CONTENT */
@@ -392,7 +395,8 @@ select option{background:var(--surface);}
   <div class="wallet-card">
     <div class="wallet-label">Wallet Balance</div>
     <div class="wallet-balance">₦<span id="walletBal">0.00</span></div>
-    <div class="wallet-actions">
+<div style="display:flex;align-items:center;gap:6px;margin:-8px 0 16px;font-size:13px;color:var(--accent);font-weight:600;">🎁 Rewards: ₦<span id="rewardsBal">0.00</span></div>
+<div class="wallet-actions">
       <div class="wallet-btn" onclick="showFund()"><span class="wi">➕</span>Fund</div>
       <div class="wallet-btn" onclick="goTo('historyScreen')"><span class="wi">📋</span>History</div>
     </div>
@@ -462,6 +466,10 @@ select option{background:var(--surface);}
       <div class="net-pill" data-filter="Monthly" onclick="setPlanFilter('Monthly',this)">Monthly</div>
     </div>
     <div class="plans-grid" id="plansGrid"></div>
+    <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
+  <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('data','WALLET',this)">💳 Wallet</div>
+  <div class="pay-pill disabled" data-src="REWARDS" id="dataRewardsPill" onclick="setPaySource('data','REWARDS',this)">🎁 Rewards (₦0.00)</div>
+</div>
     <button class="btn btn-primary" id="dataBuyBtn" onclick="buyData()">Buy Data</button>
   </div>
 </div>
@@ -485,7 +493,7 @@ select option{background:var(--surface);}
     <div class="net-badge" id="airtimeBadge"></div>
     <div class="input-stack">
       <label>Amount (₦)</label>
-      <input type="number" id="airtimeAmt" placeholder="e.g. 500" min="50"/>
+      <input type="number" id="airtimeAmt" placeholder="e.g. 500" min="50" oninput="updatePaySourceUI('airtime',parseInt(this.value)||0)"/>
     </div>
     <div class="quick-amounts">
       <div class="amt-btn" onclick="setAmt(100)">₦100</div>
@@ -494,6 +502,10 @@ select option{background:var(--surface);}
       <div class="amt-btn" onclick="setAmt(1000)">₦1K</div>
     </div>
     <div class="info-box">📞 Airtime delivered <strong>instantly</strong> after payment.</div>
+    <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
+  <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('airtime','WALLET',this)">💳 Wallet</div>
+  <div class="pay-pill disabled" data-src="REWARDS" id="airtimeRewardsPill" onclick="setPaySource('airtime','REWARDS',this)">🎁 Rewards (₦0.00)</div>
+</div>
     <button class="btn btn-primary" id="airtimeBtn" onclick="buyAirtime()">Buy Airtime</button>
   </div>
 </div>
@@ -529,6 +541,10 @@ select option{background:var(--surface);}
       <div id="cablePriceDisplay" style="font-size:18px;font-weight:800;color:var(--accent);">₦0.00</div>
     </div>
     <div class="info-box">📺 Confirm your smart card before subscribing — wrong numbers can't be refunded automatically.</div>
+    <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
+  <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('cable','WALLET',this)">💳 Wallet</div>
+  <div class="pay-pill disabled" data-src="REWARDS" id="cableRewardsPill" onclick="setPaySource('cable','REWARDS',this)">🎁 Rewards (₦0.00)</div>
+</div>
     <button class="btn btn-primary" id="cableBuyBtn" onclick="buyCable()">Subscribe</button>
   </div>
 </div>
@@ -570,9 +586,13 @@ select option{background:var(--surface);}
     </div>
     <div class="input-stack">
       <label>Amount (₦)</label>
-      <input type="number" id="electricityAmt" placeholder="Enter amount"/>
+      <input type="number" id="electricityAmt" placeholder="Enter amount" oninput="updatePaySourceUI('electricity',parseInt(this.value)||0)"/>
     </div>
     <div class="info-box">⚡ Confirm your meter number before purchasing — wrong numbers can't be refunded automatically.</div>
+    <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
+  <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('electricity','WALLET',this)">💳 Wallet</div>
+  <div class="pay-pill disabled" data-src="REWARDS" id="electricityRewardsPill" onclick="setPaySource('electricity','REWARDS',this)">🎁 Rewards (₦0.00)</div>
+</div>
     <button class="btn btn-primary" id="electricityBuyBtn" onclick="buyElectricity()">Buy Electricity</button>
   </div>
 </div>
@@ -590,6 +610,10 @@ select option{background:var(--surface);}
       <div id="waecPriceDisplay" style="font-size:18px;font-weight:800;color:var(--accent);">Loading...</div>
     </div>
     <div class="info-box">🎓 You'll receive a Serial Number and PIN to check your WAEC result — save them somewhere safe, they're shown only once.</div>
+    <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
+  <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('waec','WALLET',this)">💳 Wallet</div>
+  <div class="pay-pill disabled" data-src="REWARDS" id="waecRewardsPill" onclick="setPaySource('waec','REWARDS',this)">🎁 Rewards (₦0.00)</div>
+</div>
     <button class="btn btn-primary" id="waecBuyBtn" onclick="buyWaec()">Subscribe</button>
   </div>
 </div>
@@ -1046,7 +1070,8 @@ const gProvider = new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:'select_account'});
 
 // STATE
-let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false;
+let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false, rewardsBalance = 0;
+const paySource = {data:'WALLET', airtime:'WALLET', cable:'WALLET', electricity:'WALLET', waec:'WALLET'};
 
 // REFERRAL CODE CAPTURE
 (function(){
@@ -1306,8 +1331,9 @@ function enterApp(){
   renderVerifyBanner();
   renderIOSInstallBanner();
   updateWalletUI();
-  loadTx();
+    loadTx();
   checkPinStatus();
+  loadRewardsBalance();
   goTo('homeScreen');
   initTheme();
   pingBackend();
@@ -1678,7 +1704,7 @@ window.addEventListener('popstate', function(e){
 window.pickNet = function(el,type){
   el.closest('.net-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
-  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();}
+  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();updatePaySourceUI('data',0);}
   else airtimeNet=el.dataset.net;
 }
 
@@ -1691,7 +1717,7 @@ window.autoNet = function(phone,type){
     p.classList.remove('active');
     if(p.dataset.net===net) p.classList.add('active');
   });
-  if(type==='data'){dataNet=net;selPlan=null;renderPlans();}
+    if(type==='data'){dataNet=net;selPlan=null;renderPlans();updatePaySourceUI('data',0);}
   else airtimeNet=net;
   const badge = byId(type==='data'?'dataBadge':'airtimeBadge');
   const dots={MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
@@ -1735,8 +1761,8 @@ function renderPlans(){
       <div class="plan-price">₦${p.p.toLocaleString()}</div>
     </div>`).join('');
 }
-window.pickPlan=function(i){selPlan=i;renderPlans();}
-window.setAmt=function(a){byId('airtimeAmt').value=a;}
+window.pickPlan=function(i){selPlan=i;renderPlans();updatePaySourceUI('data',currentAmount('data'));}
+window.setAmt=function(a){byId('airtimeAmt').value=a;updatePaySourceUI('airtime',a);}
 
 // BUY DATA
 window.buyData = async function(){
@@ -1751,7 +1777,8 @@ window.buyData = async function(){
   const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
-   const ref = 'QT' + Date.now();
+     const ref = 'QT' + Date.now();
+   const usedRewards = paySource.data === 'REWARDS';
 
 const res = await api('/api/data/buy-data', {
     method: 'POST',
@@ -1760,7 +1787,8 @@ const res = await api('/api/data/buy-data', {
     phone,
     plan: plan.c,
     amount: plan.p,
-    pin
+    pin,
+    payment_source: paySource.data
 })
 });
 
@@ -1768,9 +1796,11 @@ const data = await res.json();
     btn.textContent='Buy Data'; btn.disabled=false; hideProc();
     const ok = data.success === true;
     if(ok){
-      await saveBal((userProfile.balance||0)-plan.p);
+      if(!usedRewards) await saveBal((userProfile.balance||0)-plan.p);
+      await loadRewardsBalance();
+      resetPaySourceUI('data');
       await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Ref',ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
+      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1787,13 +1817,15 @@ window.buyAirtime = async function(){
   try{
     const ref = 'QT' + Date.now();
 
+const usedRewards = paySource.airtime === 'REWARDS';
 const res = await api('/api/airtime/purchase', {
     method: 'POST',
     body: JSON.stringify({
         network: NETS[airtimeNet],
         phone,
         amount,
-        pin
+        pin,
+        payment_source: paySource.airtime
     })
 });
 
@@ -1801,9 +1833,11 @@ const data = await res.json();
     btn.textContent='Buy Airtime'; btn.disabled=false; hideProc();
     const ok = data.success === true;
     if(ok){
-      await saveBal((userProfile.balance||0)-amount);
+      if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
+      await loadRewardsBalance();
+      resetPaySourceUI('airtime');
       await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Ref',ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
+      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1850,6 +1884,7 @@ function updateCablePriceDisplay(){
   const code = byId('cablePackage')?.value;
   const pkg = pkgs.find(p=>p.code===code);
   el.textContent = pkg ? '₦'+pkg.price.toLocaleString() : '₦0.00';
+  updatePaySourceUI('cable', pkg ? pkg.price : 0);
 }
 
 window.clearCableVerify = function(){
@@ -1911,19 +1946,22 @@ window.buyCable = async function(){
   showProc('Processing Subscription...','Please wait, do not close');
 
   try{
-    const ref = 'QT' + Date.now();
+        const ref = 'QT' + Date.now();
+    const usedRewards = paySource.cable === 'REWARDS';
     const res = await api('/api/cable/purchase', {
       method:'POST',
-      body: JSON.stringify({ cableTv: cableProvider, package: packageCode, smartCardNo, amount, phone, pin })
+      body: JSON.stringify({ cableTv: cableProvider, package: packageCode, smartCardNo, amount, phone, pin, payment_source: paySource.cable })
     });
     const data = await res.json();
     btn.textContent='Subscribe'; btn.disabled=false; hideProc();
     const ok = data.success === true;
 
     if(ok){
-      await saveBal((userProfile.balance||0)-amount);
+      if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
+      await loadRewardsBalance();
+      resetPaySourceUI('cable');
       await saveTx({type:'cable', network:cableProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
-      showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'cable',account_number:smartCardNo,provider:cableProvider,metadata:{package:packageCode,packageName}});
+      showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'cable',account_number:smartCardNo,provider:cableProvider,metadata:{package:packageCode,packageName}});
       byId('cableSmartCard').value=''; clearCableVerify();
     } else {
       toast('❌ ' + (data?.message || 'Subscription failed'));
@@ -2003,19 +2041,22 @@ window.buyElectricity = async function(){
   showProc('Processing Purchase...','Please wait, do not close');
 
   try{
-    const ref = 'QT' + Date.now();
+        const ref = 'QT' + Date.now();
+    const usedRewards = paySource.electricity === 'REWARDS';
     const res = await api('/api/electricity/purchase', {
       method:'POST',
-      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo, amount, phone, pin })
+      body: JSON.stringify({ electricCompany: electricityProvider, meterType, meterNo, amount, phone, pin, payment_source: paySource.electricity })
     });
     const data = await res.json();
     btn.textContent='Buy Electricity'; btn.disabled=false; hideProc();
     const ok = data.success === true;
 
     if(ok){
-      await saveBal((userProfile.balance||0)-amount);
+      if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
+      await loadRewardsBalance();
+      resetPaySourceUI('electricity');
       await saveTx({type:'electricity', network:electricityProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
-      showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'electricity',account_number:meterNo,provider:electricityProvider,metadata:{meterType}});
+      showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'electricity',account_number:meterNo,provider:electricityProvider,metadata:{meterType}});
       byId('meterNo').value=''; byId('electricityAmt').value=''; clearMeterVerify();
     } else {
       toast('❌ ' + (data?.message || 'Purchase failed'));
@@ -2042,9 +2083,11 @@ async function loadWaecPrice(){
     } else {
       el.textContent = 'Unavailable';
     }
-  }catch(e){
+   }catch(e){
     el.textContent = 'Unavailable';
   }
+  updatePaySourceUI('waec', waecPrice||0);
+}
 }
 
 window.buyWaec = async function(){
@@ -2060,10 +2103,11 @@ window.buyWaec = async function(){
   showProc('Processing Purchase...','Please wait, do not close');
 
   try{
-    const ref = 'QT' + Date.now();
+        const ref = 'QT' + Date.now();
+    const usedRewards = paySource.waec === 'REWARDS';
     const res = await api('/api/waec/purchase', {
       method:'POST',
-      body: JSON.stringify({ phone, pin })
+      body: JSON.stringify({ phone, pin, payment_source: paySource.waec })
     });
     const data = await res.json();
     btn.textContent='Subscribe'; btn.disabled=false; hideProc();
@@ -2079,12 +2123,15 @@ window.buyWaec = async function(){
       const reference = data.data.reference || ref;
       const card = data.data.pin;
 
-      await saveBal((userProfile.balance||0)-amount);
+      if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
+      await loadRewardsBalance();
+      resetPaySourceUI('waec');
       await saveTx({type:'waec', phone, amount, ref:reference, ts:Date.now(), date:now()});
 
       const rows = [
         ['Phone', phone],
         ['Amount', '₦'+amount.toLocaleString()],
+        ['Paid From', usedRewards?'🎁 Rewards':'💳 Wallet'],
         ['Ref', reference],
         ['Status', '✅ Successful']
       ];
@@ -2860,6 +2907,59 @@ function updateWalletUI(){
   const b=userProfile?.balance||0;
   byId('walletBal').textContent=fmt(b);
   byId('profBal').textContent=fmt(b);
+}
+
+async function loadRewardsBalance(){
+  try{
+    const res = await api('/api/wallet/rewards');
+    const data = await res.json();
+    rewardsBalance = data.success ? Number(data.data.balance||0) : 0;
+  }catch(e){
+    rewardsBalance = 0;
+  }
+  const el = byId('rewardsBal');
+  if(el) el.textContent = fmt(rewardsBalance);
+  updatePaySourceUI('data', currentAmount('data'));
+  updatePaySourceUI('airtime', currentAmount('airtime'));
+  updatePaySourceUI('cable', currentAmount('cable'));
+  updatePaySourceUI('electricity', currentAmount('electricity'));
+  updatePaySourceUI('waec', currentAmount('waec'));
+}
+
+function currentAmount(screen){
+  if(screen==='data'){ const netKey=(dataNet||'MTN').toUpperCase(); const p=(planCache[netKey]||[])[selPlan]; return p?p.p:0; }
+  if(screen==='airtime'){ return parseInt(val('airtimeAmt'))||0; }
+  if(screen==='cable'){ const pkgs=cablePlanCache[cableProvider]||[]; const pkg=pkgs.find(p=>p.code===byId('cablePackage')?.value); return pkg?pkg.price:0; }
+  if(screen==='electricity'){ return parseInt(val('electricityAmt'))||0; }
+  if(screen==='waec'){ return waecPrice||0; }
+  return 0;
+}
+
+function updatePaySourceUI(screen, amount){
+  const pill = byId(screen+'RewardsPill');
+  if(!pill) return;
+  const affordable = amount>0 && rewardsBalance >= amount;
+  pill.classList.toggle('disabled', !affordable);
+  pill.textContent = '🎁 Rewards (₦'+fmt(rewardsBalance)+')';
+  if(!affordable && paySource[screen]==='REWARDS'){
+    resetPaySourceUI(screen);
+  }
+}
+
+function resetPaySourceUI(screen){
+  paySource[screen] = 'WALLET';
+  const wrap = byId(screen+'RewardsPill')?.parentElement;
+  if(wrap){
+    wrap.querySelectorAll('.pay-pill').forEach(p=>p.classList.remove('active'));
+    wrap.querySelector('[data-src="WALLET"]')?.classList.add('active');
+  }
+}
+
+window.setPaySource = function(screen, src, el){
+  if(src==='REWARDS' && el.classList.contains('disabled')) return;
+  el.parentElement.querySelectorAll('.pay-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  paySource[screen] = src;
 }
 
 function renderAvatar(){
