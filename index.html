@@ -1070,7 +1070,7 @@ const gProvider = new GoogleAuthProvider();
 gProvider.setCustomParameters({prompt:'select_account'});
 
 // STATE
-let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlan = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false, rewardsBalance = 0;
+let currentUser = null, userProfile = null, txList = [], dataNet = 'MTN', airtimeNet = 'MTN', selPlanCode = null, cableProvider = 'DSTV', cableVerified = false, electricityProvider = 'EKEDC', meterType = 'PREPAID', meterVerified = false, hasPin = false, rewardsBalance = 0;
 const paySource = {data:'WALLET', airtime:'WALLET', cable:'WALLET', electricity:'WALLET', waec:'WALLET'};
 
 // REFERRAL CODE CAPTURE
@@ -1331,7 +1331,7 @@ function enterApp(){
   renderVerifyBanner();
   renderIOSInstallBanner();
   updateWalletUI();
-    loadTx();
+  loadTx();
   checkPinStatus();
   loadRewardsBalance();
   goTo('homeScreen');
@@ -1704,7 +1704,7 @@ window.addEventListener('popstate', function(e){
 window.pickNet = function(el,type){
   el.closest('.net-pills').querySelectorAll('.net-pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
-  if(type==='data'){dataNet=el.dataset.net;selPlan=null;renderPlans();updatePaySourceUI('data',0);}
+  if(type==='data'){dataNet=el.dataset.net;selPlanCode=null;renderPlans();updatePaySourceUI('data',0);}
   else airtimeNet=el.dataset.net;
 }
 
@@ -1717,7 +1717,7 @@ window.autoNet = function(phone,type){
     p.classList.remove('active');
     if(p.dataset.net===net) p.classList.add('active');
   });
-    if(type==='data'){dataNet=net;selPlan=null;renderPlans();updatePaySourceUI('data',0);}
+  if(type==='data'){dataNet=net;selPlanCode=null;renderPlans();updatePaySourceUI('data',0);}
   else airtimeNet=net;
   const badge = byId(type==='data'?'dataBadge':'airtimeBadge');
   const dots={MTN:'🟡',Airtel:'🔴',Glo:'🟢','9mobile':'🔵'};
@@ -1754,31 +1754,31 @@ function renderPlans(){
   }
 
   const plans=allPlans.filter(p=>planFilter==='All'||planCategory(p)===planFilter);
-  byId('plansGrid').innerHTML=plans.map((p,i)=>`
-    <div class="plan-card ${selPlan===i?'selected':''}" onclick="pickPlan(${i})">
+  byId('plansGrid').innerHTML=plans.map((p)=>`
+    <div class="plan-card ${p.c===selPlanCode?'selected':''}" onclick="pickPlan('${p.c}')">
       <div class="plan-size">${p.s}</div>
       <div class="plan-val">${p.v}</div>
       <div class="plan-price">₦${p.p.toLocaleString()}</div>
     </div>`).join('');
 }
-window.pickPlan=function(i){selPlan=i;renderPlans();updatePaySourceUI('data',currentAmount('data'));}
+window.pickPlan=function(code){selPlanCode=code;renderPlans();updatePaySourceUI('data',currentAmount('data'));}
 window.setAmt=function(a){byId('airtimeAmt').value=a;updatePaySourceUI('airtime',a);}
 
 // BUY DATA
 window.buyData = async function(){
   const phone=val('dataPhone');
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
-  if(selPlan===null){toast('Select a data plan');return;}
+  if(!selPlanCode){toast('Select a data plan');return;}
   const netKey=(dataNet||'MTN').toUpperCase();
-  const plan=(planCache[netKey]||[])[selPlan];
+  const plan=(planCache[netKey]||[]).find(p=>p.c===selPlanCode);
   if(!plan){toast('Select a data plan');return;}
   const pin = await askPin();
   if(!pin) return;
   const btn=byId('dataBuyBtn'); btn.textContent='Processing...'; btn.disabled=true;
   showProc('Buying Data...','Sending '+plan.s+' to '+phone);
   try{
-     const ref = 'QT' + Date.now();
-   const usedRewards = paySource.data === 'REWARDS';
+    const ref = 'QT' + Date.now();
+    const usedRewards = paySource.data === 'REWARDS';
 
 const res = await api('/api/data/buy-data', {
     method: 'POST',
@@ -1816,8 +1816,8 @@ window.buyAirtime = async function(){
   showProc('Sending Airtime...','Topping up '+phone+' with ₦'+amount.toLocaleString());
   try{
     const ref = 'QT' + Date.now();
+    const usedRewards = paySource.airtime === 'REWARDS';
 
-const usedRewards = paySource.airtime === 'REWARDS';
 const res = await api('/api/airtime/purchase', {
     method: 'POST',
     body: JSON.stringify({
@@ -1946,7 +1946,7 @@ window.buyCable = async function(){
   showProc('Processing Subscription...','Please wait, do not close');
 
   try{
-        const ref = 'QT' + Date.now();
+    const ref = 'QT' + Date.now();
     const usedRewards = paySource.cable === 'REWARDS';
     const res = await api('/api/cable/purchase', {
       method:'POST',
@@ -2041,7 +2041,7 @@ window.buyElectricity = async function(){
   showProc('Processing Purchase...','Please wait, do not close');
 
   try{
-        const ref = 'QT' + Date.now();
+    const ref = 'QT' + Date.now();
     const usedRewards = paySource.electricity === 'REWARDS';
     const res = await api('/api/electricity/purchase', {
       method:'POST',
@@ -2083,7 +2083,7 @@ async function loadWaecPrice(){
     } else {
       el.textContent = 'Unavailable';
     }
-   }catch(e){
+  }catch(e){
     el.textContent = 'Unavailable';
   }
   updatePaySourceUI('waec', waecPrice||0);
@@ -2102,7 +2102,7 @@ window.buyWaec = async function(){
   showProc('Processing Purchase...','Please wait, do not close');
 
   try{
-        const ref = 'QT' + Date.now();
+    const ref = 'QT' + Date.now();
     const usedRewards = paySource.waec === 'REWARDS';
     const res = await api('/api/waec/purchase', {
       method:'POST',
@@ -2492,7 +2492,7 @@ window.applyFavorite = function(index){
       p.classList.remove('active');
       if(p.dataset.net===f.provider) p.classList.add('active');
     });
-    dataNet = f.provider; selPlan=null; renderPlans();
+    dataNet = f.provider; selPlanCode=null; renderPlans();
   } else if(favPickerService==='airtime'){
     byId('airtimePhone').value = f.account_number;
     byId('airtimeScreen').querySelectorAll('.net-pill').forEach(p=>{
@@ -2926,7 +2926,7 @@ async function loadRewardsBalance(){
 }
 
 function currentAmount(screen){
-  if(screen==='data'){ const netKey=(dataNet||'MTN').toUpperCase(); const p=(planCache[netKey]||[])[selPlan]; return p?p.p:0; }
+  if(screen==='data'){ const netKey=(dataNet||'MTN').toUpperCase(); const p=(planCache[netKey]||[]).find(p=>p.c===selPlanCode); return p?p.p:0; }
   if(screen==='airtime'){ return parseInt(val('airtimeAmt'))||0; }
   if(screen==='cable'){ const pkgs=cablePlanCache[cableProvider]||[]; const pkg=pkgs.find(p=>p.code===byId('cablePackage')?.value); return pkg?pkg.price:0; }
   if(screen==='electricity'){ return parseInt(val('electricityAmt'))||0; }
@@ -2934,7 +2934,7 @@ function currentAmount(screen){
   return 0;
 }
 
-function updatePaySourceUI(screen, amount){
+window.updatePaySourceUI = function(screen, amount){
   const pill = byId(screen+'RewardsPill');
   if(!pill) return;
   const affordable = amount>0 && rewardsBalance >= amount;
