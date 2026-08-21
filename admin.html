@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
 <title>QuickTop Admin</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="apple-touch-icon" href="qt-icon.png"/>
 <style>
 :root{
   --bg:#0A0F1E;--surface:#111827;--surface2:#1A2235;
@@ -495,7 +497,7 @@ const firebaseConfig = {
   appId:"1:1079372854323:web:a09fd674616465192d9f46"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig, "quicktopAdmin");
 const auth = getAuth(app);
 
 const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
