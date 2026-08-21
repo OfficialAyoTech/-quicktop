@@ -2317,13 +2317,35 @@ window.closeInfoModal = function(){
 // to the bundled placeholder text if the doc isn't published yet or the
 // request fails (offline, etc). Deliberately a plain fetch (not the
 // authenticated api() helper) since these must be readable before login.
+function escapeHtmlText(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Legal docs are meant to be edited as plain, readable text in the admin
+// panel — no HTML tags to fight with. This turns blank-line-separated
+// paragraphs into <p> tags (and single line breaks into <br>) for display.
+// If the admin deliberately writes real HTML (starts with a tag), render it
+// as-is instead of double-escaping it — keeps the "basic HTML also works"
+// escape hatch the admin panel's help text already promises.
+function formatLegalContent(text){
+  const trimmed = (text||'').trim();
+  const looksLikeHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+  if(looksLikeHtml) return text;
+  return trimmed
+    .split(/\n\s*\n/)
+    .map(para => '<p>' + escapeHtmlText(para).replace(/\n/g,'<br>') + '</p>')
+    .join('');
+}
+
 window.openLegalDoc = async function(docKey, title){
   const fallback = docKey === 'privacy_policy' ? privacyContent : termsContent;
   showInfoModal(title, '<p style="text-align:center;color:var(--text2);">Loading...</p>');
   try{
     const res = await fetch(BACKEND + '/api/legal/' + docKey);
     const data = await res.json();
-    byId('infoModalBody').innerHTML = (data.success && data.data?.content) ? data.data.content : fallback;
+    byId('infoModalBody').innerHTML = (data.success && data.data?.content) ? formatLegalContent(data.data.content) : fallback;
   }catch(e){
     byId('infoModalBody').innerHTML = fallback;
   }
