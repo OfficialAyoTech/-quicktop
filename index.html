@@ -887,10 +887,10 @@ select option{background:var(--surface);}
     <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20need%20help" target="_blank" class="menu-item" style="text-decoration:none;color:inherit;">
       <div class="menu-icon">🛠️</div><div class="menu-text"><p>Contact Support</p><span>Chat with us on WhatsApp</span></div><span style="color:var(--text2);">›</span>
     </a>
-    <div class="menu-item" onclick="showInfoModal('Privacy Policy', privacyContent)">
+    <div class="menu-item" onclick="openLegalDoc('privacy_policy','Privacy Policy')">
       <div class="menu-icon">🔒</div><div class="menu-text"><p>Privacy Policy</p><span>How we handle your data</span></div><span style="color:var(--text2);">›</span>
     </div>
-    <div class="menu-item" onclick="showInfoModal('Terms of Service', termsContent)">
+    <div class="menu-item" onclick="openLegalDoc('terms_of_service','Terms of Service')">
       <div class="menu-icon">📄</div><div class="menu-text"><p>Terms of Service</p><span>Usage terms</span></div><span style="color:var(--text2);">›</span>
     </div>
     <div class="menu-item" onclick="goTo('deleteAccountScreen')">
@@ -2311,6 +2311,22 @@ window.showInfoModal = function(title, content){
 }
 window.closeInfoModal = function(){
   byId('infoModal').classList.remove('show');
+}
+
+// LEGAL DOCS — fetched live from the backend (admin-editable), falling back
+// to the bundled placeholder text if the doc isn't published yet or the
+// request fails (offline, etc). Deliberately a plain fetch (not the
+// authenticated api() helper) since these must be readable before login.
+window.openLegalDoc = async function(docKey, title){
+  const fallback = docKey === 'privacy_policy' ? privacyContent : termsContent;
+  showInfoModal(title, '<p style="text-align:center;color:var(--text2);">Loading...</p>');
+  try{
+    const res = await fetch(BACKEND + '/api/legal/' + docKey);
+    const data = await res.json();
+    byId('infoModalBody').innerHTML = (data.success && data.data?.content) ? data.data.content : fallback;
+  }catch(e){
+    byId('infoModalBody').innerHTML = fallback;
+  }
 }
 
 window.setFundAmt=function(a){byId('fundAmt').value=a;}
