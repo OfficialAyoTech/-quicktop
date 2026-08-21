@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QuickTop - Privacy Policy & Terms of Service</title>
+<meta name="description" content="QuickTop Privacy Policy and Terms of Service."/>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<style>
+:root{
+  --bg:#0A0F1E;--surface:#111827;--surface2:#1A2235;
+  --accent:#00E676;--accent2:#00BFA5;--text:#F0F4FF;
+  --text2:#8B9BBE;--danger:#FF5370;--radius:16px;--radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;}
+
+header{padding:24px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--surface2);position:sticky;top:0;background:var(--bg);z-index:10;flex-wrap:wrap;gap:12px;}
+.brand{font-size:20px;font-weight:900;letter-spacing:-0.5px;}
+.brand span{color:var(--accent);}
+nav{display:flex;gap:10px;}
+nav a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:700;padding:8px 14px;border:1px solid var(--surface2);border-radius:20px;transition:all .15s;}
+nav a:hover, nav a.active{color:var(--accent);border-color:var(--accent);background:rgba(0,230,118,.08);}
+
+main{max-width:720px;margin:0 auto;padding:40px 20px 80px;}
+section{margin-bottom:64px;scroll-margin-top:90px;}
+section h1{font-size:26px;font-weight:800;margin-bottom:8px;}
+.updated{font-size:12px;color:var(--text2);margin-bottom:28px;}
+.doc-body{font-size:15px;color:var(--text);}
+.doc-body p{margin-bottom:16px;}
+.doc-body strong{color:var(--accent);}
+.loading, .unavailable{color:var(--text2);font-size:14px;padding:20px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--surface2);}
+.unavailable{color:var(--danger);border-color:rgba(255,83,112,.3);background:rgba(255,83,112,.06);}
+
+footer{text-align:center;padding:32px 20px;border-top:1px solid var(--surface2);color:var(--text2);font-size:13px;}
+footer a{color:var(--accent);text-decoration:none;}
+
+@media(max-width:480px){
+  header{padding:18px 16px;}
+  main{padding:28px 16px 60px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Quick<span>Top</span></div>
+  <nav>
+    <a href="#privacy-policy" id="navPrivacy">Privacy Policy</a>
+    <a href="#terms-of-service" id="navTerms">Terms of Service</a>
+  </nav>
+</header>
+
+<main>
+  <section id="privacy-policy">
+    <h1>Privacy Policy</h1>
+    <div class="updated" id="privacyUpdated"></div>
+    <div class="doc-body" id="privacyBody"><div class="loading">Loading...</div></div>
+  </section>
+
+  <section id="terms-of-service">
+    <h1>Terms of Service</h1>
+    <div class="updated" id="termsUpdated"></div>
+    <div class="doc-body" id="termsBody"><div class="loading">Loading...</div></div>
+  </section>
+</main>
+
+<footer>
+  QuickTop &middot; Questions? <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20need%20help" target="_blank">Contact Support on WhatsApp</a>
+</footer>
+
+<script>
+const BACKEND = 'https://quicktop-backend-8aon.onrender.com';
+
+function byId(id){ return document.getElementById(id); }
+
+function escapeHtmlText(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Same rule as the app: plain text is auto-formatted into paragraphs;
+// if the admin deliberately wrote real HTML (starts with a tag), it's
+// rendered as-is instead of being escaped.
+function formatLegalContent(text){
+  const trimmed = (text || '').trim();
+  const looksLikeHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+  if (looksLikeHtml) return text;
+  return trimmed
+    .split(/\n\s*\n/)
+    .map(para => '<p>' + escapeHtmlText(para).replace(/\n/g, '<br>') + '</p>')
+    .join('');
+}
+
+async function loadDoc(docKey, bodyElId, updatedElId){
+  const bodyEl = byId(bodyElId);
+  const updatedEl = byId(updatedElId);
+  try{
+    const res = await fetch(BACKEND + '/api/legal/' + docKey);
+    const data = await res.json();
+    if(data.success && data.data?.content){
+      bodyEl.innerHTML = formatLegalContent(data.data.content);
+      updatedEl.textContent = data.data.updated_at
+        ? 'Last updated: ' + new Date(data.data.updated_at).toLocaleDateString('en-NG', {day:'numeric', month:'long', year:'numeric'})
+        : '';
+    } else {
+      bodyEl.innerHTML = '<div class="unavailable">This document is not yet available.</div>';
+    }
+  }catch(e){
+    bodyEl.innerHTML = '<div class="unavailable">Could not load this document. Please try again shortly.</div>';
+  }
+}
+
+loadDoc('privacy_policy', 'privacyBody', 'privacyUpdated');
+loadDoc('terms_of_service', 'termsBody', 'termsUpdated');
+
+// Highlight the nav link matching whichever section is in view
+const sections = document.querySelectorAll('section');
+const navLinks = { 'privacy-policy': byId('navPrivacy'), 'terms-of-service': byId('navTerms') };
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      Object.values(navLinks).forEach(a => a.classList.remove('active'));
+      navLinks[entry.target.id]?.classList.add('active');
+    }
+  });
+}, { rootMargin: '-40% 0px -50% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
