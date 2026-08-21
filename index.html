@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="format-detection" content="telephone=no"/>
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no"/>
 <title>QuickTop - Cheap Data &amp; Airtime</title>
 <meta name="description" content="Buy cheap data and airtime instantly. Pay bills and earn rewards on MTN, Airtel, Glo, 9mobile."/>
 <link rel="manifest" href="manifest.json"/>
@@ -38,7 +38,8 @@ html,body{background:#0A0F1E;min-height:100vh;}
   --text2:#8B9BBE;--danger:#FF5370;
   --radius:16px;--radius-sm:10px;
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden;-webkit-user-select:none;user-select:none;}
+input,textarea{-webkit-user-select:text;user-select:text;}
 body.light{--bg:#F0F4FF;--surface:#fff;--surface2:#E8EEF8;--text:#0A0F1E;--text2:#4A5568;}
 
 /* LOADER */
