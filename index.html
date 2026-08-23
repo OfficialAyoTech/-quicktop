@@ -1925,19 +1925,23 @@ window.verifyCableAcct = async function(){
     btn.textContent='Verify Smart Card'; btn.disabled=false;
 
     const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
-    // ClubKonnect signals a failed verification by putting an error code
-    // (e.g. INVALID_SMARTCARDNO) into the same field a real customer name
-    // occupies on success. Error codes are SNAKE_CASE with no spaces — a
-    // real name always contains a space — so that's what tells them apart.
-    const looksLikeErrorCode = name && /^[A-Z0-9_]+$/.test(name) && !name.includes(' ');
+    const trimmedName = (name||'').trim();
+    // Two ways ClubKonnect signals "not really verified" in this same field:
+    // a SNAKE_CASE error code (e.g. INVALID_SMARTCARDNO), or a placeholder
+    // token like "N/A" meaning no real data came back. Neither is a real
+    // customer name — a real name always has a space in it.
+    const NO_DATA_TOKENS = ['N/A','NA','NULL','NIL','NONE','-'];
+    const isErrorCode = /^[A-Z0-9_]+$/.test(trimmedName) && trimmedName.includes('_') && !trimmedName.includes(' ');
+    const isNoDataToken = NO_DATA_TOKENS.includes(trimmedName.toUpperCase());
+    const looksInvalid = !trimmedName || isErrorCode || isNoDataToken;
 
-    if(data.success === true && name && !looksLikeErrorCode){
+    if(data.success === true && !looksInvalid){
       cableVerified = true;
-      byId('cableVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${name}</div>`;
+      byId('cableVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${trimmedName}</div>`;
     } else {
       cableVerified = false;
       byId('cableVerifyResult').innerHTML = '';
-      toast('❌ ' + (looksLikeErrorCode ? name : (data?.message || 'Unable to verify smart card')));
+      toast('❌ ' + (isErrorCode ? trimmedName : 'Unable to verify smart card — please check the number and try again.'));
     }
   }catch(e){
     btn.textContent='Verify Smart Card'; btn.disabled=false;
@@ -2031,18 +2035,23 @@ window.verifyMeterAcct = async function(){
     btn.textContent='Verify Meter'; btn.disabled=false;
 
     const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
-    // Same ClubKonnect pattern as cable verification: a failed lookup puts
-    // an error code (e.g. INVALID_METERNO) into the name field itself.
-    // Error codes are SNAKE_CASE with no spaces — a real name always has one.
-    const looksLikeErrorCode = name && /^[A-Z0-9_]+$/.test(name) && !name.includes(' ');
+    const trimmedName = (name||'').trim();
+    // Two ways ClubKonnect signals "not really verified" in this same field:
+    // a SNAKE_CASE error code (e.g. INVALID_METERNO), or a placeholder
+    // token like "N/A" meaning no real data came back. Neither is a real
+    // customer name — a real name always has a space in it.
+    const NO_DATA_TOKENS = ['N/A','NA','NULL','NIL','NONE','-'];
+    const isErrorCode = /^[A-Z0-9_]+$/.test(trimmedName) && trimmedName.includes('_') && !trimmedName.includes(' ');
+    const isNoDataToken = NO_DATA_TOKENS.includes(trimmedName.toUpperCase());
+    const looksInvalid = !trimmedName || isErrorCode || isNoDataToken;
 
-    if(data.success === true && name && !looksLikeErrorCode){
+    if(data.success === true && !looksInvalid){
       meterVerified = true;
-      byId('meterVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${name}</div>`;
+      byId('meterVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${trimmedName}</div>`;
     } else {
       meterVerified = false;
       byId('meterVerifyResult').innerHTML = '';
-      toast('❌ ' + (looksLikeErrorCode ? name : (data?.message || 'Unable to verify meter')));
+      toast('❌ ' + (isErrorCode ? trimmedName : 'Unable to verify meter — please check the number and try again.'));
     }
   }catch(e){
     btn.textContent='Verify Meter'; btn.disabled=false;
