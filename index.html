@@ -1816,8 +1816,8 @@ const data = await res.json();
       if(!usedRewards) await saveBal((userProfile.balance||0)-plan.p);
       await loadRewardsBalance();
       resetPaySourceUI('data');
-      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref,ts:Date.now(),date:now()});
-      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
+      await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref:data.reference||ref,ts:Date.now(),date:now()});
+      showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Data';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1853,8 +1853,8 @@ const data = await res.json();
       if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
       await loadRewardsBalance();
       resetPaySourceUI('airtime');
-      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref,ts:Date.now(),date:now()});
-      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
+      await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref:data.reference||ref,ts:Date.now(),date:now()});
+      showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
     } else toast('❌ '+(data?.message||data?.response_description||'Transaction failed'));
   }catch(e){btn.textContent='Buy Airtime';btn.disabled=false;hideProc();toast('Network error. Try again.');}
 }
@@ -1924,14 +1924,20 @@ window.verifyCableAcct = async function(){
     const data = await res.json();
     btn.textContent='Verify Smart Card'; btn.disabled=false;
 
-    if(data.success === true){
+    const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
+    // ClubKonnect signals a failed verification by putting an error code
+    // (e.g. INVALID_SMARTCARDNO) into the same field a real customer name
+    // occupies on success. Error codes are SNAKE_CASE with no spaces — a
+    // real name always contains a space — so that's what tells them apart.
+    const looksLikeErrorCode = name && /^[A-Z0-9_]+$/.test(name) && !name.includes(' ');
+
+    if(data.success === true && name && !looksLikeErrorCode){
       cableVerified = true;
-      const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
-      byId('cableVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified${name?': '+name:''}</div>`;
+      byId('cableVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${name}</div>`;
     } else {
       cableVerified = false;
       byId('cableVerifyResult').innerHTML = '';
-      toast('❌ ' + (data?.message || 'Unable to verify smart card'));
+      toast('❌ ' + (looksLikeErrorCode ? name : (data?.message || 'Unable to verify smart card')));
     }
   }catch(e){
     btn.textContent='Verify Smart Card'; btn.disabled=false;
@@ -2024,14 +2030,19 @@ window.verifyMeterAcct = async function(){
     const data = await res.json();
     btn.textContent='Verify Meter'; btn.disabled=false;
 
-    if(data.success === true){
+    const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
+    // Same ClubKonnect pattern as cable verification: a failed lookup puts
+    // an error code (e.g. INVALID_METERNO) into the name field itself.
+    // Error codes are SNAKE_CASE with no spaces — a real name always has one.
+    const looksLikeErrorCode = name && /^[A-Z0-9_]+$/.test(name) && !name.includes(' ');
+
+    if(data.success === true && name && !looksLikeErrorCode){
       meterVerified = true;
-      const name = data.data?.customerName || data.data?.customer_name || data.data?.name || null;
-      byId('meterVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified${name?': '+name:''}</div>`;
+      byId('meterVerifyResult').innerHTML = `<div class="info-box" style="border-color:#1DB954;">✅ Verified: ${name}</div>`;
     } else {
       meterVerified = false;
       byId('meterVerifyResult').innerHTML = '';
-      toast('❌ ' + (data?.message || 'Unable to verify meter'));
+      toast('❌ ' + (looksLikeErrorCode ? name : (data?.message || 'Unable to verify meter')));
     }
   }catch(e){
     btn.textContent='Verify Meter'; btn.disabled=false;
