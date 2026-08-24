@@ -1954,13 +1954,14 @@ async function loadFinOverview(){
       return;
     }
 
-    finOverviewCache = data.data;
+        finOverviewCache = data.data;
     renderFinOverview(finOverviewCache);
 
   }catch(e){
     wrap.innerHTML = renderFinRangePicker() + '<div class="dash-error">Network error — could not reach the server.</div>';
   }
 }
+window.loadFinOverview = loadFinOverview;
 
 function renderFinRangePicker(){
   const ranges = [
