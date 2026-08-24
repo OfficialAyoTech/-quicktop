@@ -186,7 +186,7 @@ input:focus{border-color:var(--accent);}
 .cb-field input{padding:10px 12px;font-size:14px;}
 
 /* LEGAL DOCS */
-.legal-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.legal-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
 .legal-tab-btn{background:var(--surface);border:1px solid var(--surface2);color:var(--text2);border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
 .legal-tab-btn.active{background:rgba(0,230,118,.12);color:var(--accent);border-color:var(--accent);}
 .legal-editor-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:20px;}
@@ -200,6 +200,43 @@ input:focus{border-color:var(--accent);}
 .legal-save-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:var(--radius-sm);padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;}
 .legal-save-btn:disabled{opacity:.5;cursor:default;}
 .legal-draft-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(255,193,7,.12);color:var(--warn);margin-left:8px;}
+
+/* FINANCIAL SECTION */
+.fin-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+.fin-toolbar select{background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;}
+.fin-toolbar select:focus{border-color:var(--accent);}
+.fin-toolbar input[type="date"]{background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;outline:none;max-width:160px;}
+.fin-toolbar input[type="date"]:focus{border-color:var(--accent);}
+.fin-refresh-btn{background:var(--surface2);color:var(--text);border:none;border-radius:var(--radius-sm);padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+.fin-section-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin:22px 0 10px;}
+.fin-section-label:first-child{margin-top:0;}
+.fin-service-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--surface2);font-size:13px;}
+.fin-service-row span:first-child{color:var(--text2);}
+.fin-service-row span:last-child{font-weight:700;}
+.fin-form-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:18px;margin-bottom:16px;}
+.fin-form-title{font-weight:700;font-size:15px;margin-bottom:12px;}
+.fin-form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.fin-form-row input,.fin-form-row select,.fin-form-row textarea{flex:1;min-width:140px;font-size:14px;padding:10px 12px;}
+.fin-form-row textarea{min-height:60px;resize:vertical;font-family:inherit;}
+.fin-submit-btn{background:var(--accent);color:#0A0F1E;border:none;border-radius:var(--radius-sm);padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;}
+.fin-list-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;flex-wrap:wrap;}
+.fin-list-info{flex:1;min-width:160px;}
+.fin-list-title{font-weight:700;font-size:14px;}
+.fin-list-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.fin-list-amount{font-weight:800;font-size:14px;white-space:nowrap;}
+.fin-list-amount.neg{color:var(--danger);}
+.fin-list-amount.pos{color:var(--accent);}
+.status-badge.PENDING_WD{background:rgba(255,193,7,.12);color:var(--warn);}
+.status-badge.COMPLETED{background:rgba(0,230,118,.12);color:var(--accent);}
+.status-badge.REJECTED{background:rgba(255,83,112,.1);color:var(--danger);}
+.status-badge.CANCELLED{background:rgba(138,147,168,.15);color:var(--text2);}
+.status-badge.success{background:rgba(0,230,118,.12);color:var(--accent);}
+.status-badge.processing{background:rgba(255,193,7,.12);color:var(--warn);}
+.status-badge.failed{background:rgba(255,83,112,.1);color:var(--danger);}
+.fin-wd-actions{display:flex;gap:6px;}
+.fin-wd-actions button{background:var(--surface2);color:var(--text);border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;}
+.fin-wd-actions button.complete{background:var(--accent);color:#0A0F1E;}
+.fin-wd-actions button.reject{color:var(--danger);}
 
 @media(max-width:480px){
   .topbar{padding:14px 16px;}
@@ -249,6 +286,7 @@ input:focus{border-color:var(--accent);}
         <div class="nav-link" id="navCablePlans" onclick="showAdminSection('cableplans')">Cable Plans</div>
         <div class="nav-link" id="navWaec" onclick="showAdminSection('waec')">WAEC</div>
         <div class="nav-link" id="navCashback" onclick="showAdminSection('cashback')">Cashback</div>
+        <div class="nav-link" id="navFinancial" onclick="showAdminSection('financial')">Financial</div>
         <div class="nav-link" id="navLegal" onclick="showAdminSection('legal')">Legal</div>
       </div>
     </div>
@@ -428,6 +466,29 @@ input:focus{border-color:var(--accent);}
       <div id="cashbackWrap">
         <div class="dash-loading">Loading cashback rates...</div>
       </div>
+    </div>
+  </div>
+
+  <div id="financialSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Financial</div>
+      <div class="dash-sub">Provider capital, profit, expenses, withdrawals, and Paystack settlements.</div>
+
+      <div class="legal-tabs">
+        <button class="legal-tab-btn active" id="finTabOverview" onclick="switchFinTab('overview')">Overview</button>
+        <button class="legal-tab-btn" id="finTabCapital" onclick="switchFinTab('capital')">Capital</button>
+        <button class="legal-tab-btn" id="finTabExpenses" onclick="switchFinTab('expenses')">Expenses</button>
+        <button class="legal-tab-btn" id="finTabWithdrawals" onclick="switchFinTab('withdrawals')">Withdrawals</button>
+        <button class="legal-tab-btn" id="finTabSettlements" onclick="switchFinTab('settlements')">Settlements</button>
+      </div>
+
+      <div id="finMsg" class="wallet-msg"></div>
+
+      <div id="finOverviewPanel"><div class="dash-loading">Loading...</div></div>
+      <div id="finCapitalPanel" class="hidden"><div class="dash-loading">Loading...</div></div>
+      <div id="finExpensesPanel" class="hidden"><div class="dash-loading">Loading...</div></div>
+      <div id="finWithdrawalsPanel" class="hidden"><div class="dash-loading">Loading...</div></div>
+      <div id="finSettlementsPanel" class="hidden"><div class="dash-loading">Loading...</div></div>
     </div>
   </div>
 
@@ -626,7 +687,7 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec', cashback:'navCashback', legal:'navLegal' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec', cashback:'navCashback', financial:'navFinancial', legal:'navLegal' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
@@ -637,6 +698,7 @@ window.showAdminSection = function(section){
   hide('cablePlansSection');
   hide('waecSection');
   hide('cashbackSection');
+  hide('financialSection');
   hide('legalSection');
   if(section === 'dashboard'){
     show('dashboardSection');
@@ -666,6 +728,9 @@ window.showAdminSection = function(section){
   } else if(section === 'cashback'){
     show('cashbackSection');
     loadCashbackRates();
+  } else if(section === 'financial'){
+    show('financialSection');
+    loadFinOverview();
   } else {
     show('legalSection');
     loadLegalDocs();
@@ -1830,6 +1895,512 @@ window.saveCashbackRate = async function(serviceName){
     }
   }catch(e){
     alert('Network error. Try again.');
+  }
+}
+
+// ============ FINANCIAL ============
+
+let finCurrentRange = 'today';
+let finOverviewCache = null;
+
+window.switchFinTab = function(tab){
+  document.querySelectorAll('#financialSection .legal-tab-btn').forEach(el => el.classList.remove('active'));
+  byId('finTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+  ['Overview','Capital','Expenses','Withdrawals','Settlements'].forEach(p => hide('fin' + p + 'Panel'));
+  byId('finMsg').textContent = '';
+  byId('finMsg').className = 'wallet-msg';
+
+  const panelId = 'fin' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Panel';
+  show(panelId);
+
+  if(tab === 'overview') loadFinOverview();
+  else if(tab === 'capital') loadFinCapital();
+  else if(tab === 'expenses') loadFinExpenses();
+  else if(tab === 'withdrawals') loadFinWithdrawals();
+  else if(tab === 'settlements') loadFinSettlements();
+}
+
+function finMsg(text, isErr){
+  const el = byId('finMsg');
+  el.textContent = text;
+  el.className = 'wallet-msg ' + (isErr ? 'err' : 'ok');
+}
+
+// --- OVERVIEW ---
+async function loadFinOverview(){
+  const wrap = byId('finOverviewPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading financial overview...</div>';
+
+  try{
+    const params = new URLSearchParams();
+    params.set('range', finCurrentRange);
+    if(finCurrentRange === 'custom'){
+      const from = val('finFromDate');
+      const to = val('finToDate');
+      if(!from || !to){
+        wrap.innerHTML = renderFinRangePicker() + '<div class="dash-loading">Pick both a start and end date, then click Apply.</div>';
+        return;
+      }
+      params.set('from_date', from);
+      params.set('to_date', to);
+    }
+
+    const res = await api(`/api/admin/financial-overview?${params.toString()}`);
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = renderFinRangePicker() + `<div class="dash-error">Could not load overview: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    finOverviewCache = data.data;
+    renderFinOverview(finOverviewCache);
+
+  }catch(e){
+    wrap.innerHTML = renderFinRangePicker() + '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+function renderFinRangePicker(){
+  const ranges = [
+    ['today','Today'],['yesterday','Yesterday'],['week','Last 7 Days'],['last_week','Last Week'],
+    ['month','This Month'],['last_month','Last Month'],['custom','Custom Range'],['all','All Time']
+  ];
+  const options = ranges.map(([v,l]) => `<option value="${v}" ${finCurrentRange===v?'selected':''}>${l}</option>`).join('');
+
+  const customInputs = finCurrentRange === 'custom' ? `
+    <input type="date" id="finFromDate" value="${val('finFromDate')}"/>
+    <input type="date" id="finToDate" value="${val('finToDate')}"/>
+    <button class="fin-refresh-btn" onclick="loadFinOverview()">Apply</button>
+  ` : '';
+
+  return `
+    <div class="fin-toolbar">
+      <select id="finRangeSelect" onchange="finCurrentRange=this.value; loadFinOverview();">${options}</select>
+      ${customInputs}
+      <button class="fin-refresh-btn" onclick="loadFinOverview()">🔄 Refresh</button>
+    </div>
+  `;
+}
+
+function renderFinOverview(d){
+  const wrap = byId('finOverviewPanel');
+
+  const cards = [
+    { icon:'🏦', value:'₦'+fmt(d.provider_capital?.clubkonnect_balance), label:'Provider Capital (ClubKonnect)' },
+    { icon:'👛', value:'₦'+fmt(d.customer_wallet_liability), label:'Customer Wallet Liability' },
+    { icon:'💵', value:'₦'+fmt(d.profit?.gross_profit), label:'Gross Profit' },
+    { icon:'📈', value:'₦'+fmt(d.profit?.net_profit), label:'Net Profit' },
+    { icon:'✅', value:'₦'+fmt(d.withdrawable_profit), label:'Withdrawable Profit' },
+    { icon:'💳', value:'₦'+fmt(d.paystack?.total_funded), label:'Total Funded (Paystack)' }
+  ];
+
+  let html = renderFinRangePicker();
+
+  html += `<div class="stat-grid">${cards.map(c => `
+    <div class="stat-card balance">
+      <div class="stat-icon">${c.icon}</div>
+      <div class="stat-value">${c.value}</div>
+      <div class="stat-label">${c.label}</div>
+    </div>
+  `).join('')}</div>`;
+
+  html += `<div class="fin-section-label">Profit by Service</div>`;
+  const byService = d.profit?.by_service || [];
+  if(!byService.length){
+    html += `<div class="dash-loading" style="padding:20px 0;">No profit recorded for this range.</div>`;
+  } else {
+    html += byService.map(s => `<div class="fin-service-row"><span>${esc(s.service)}</span><span>₦${fmt(s.gross_profit)}</span></div>`).join('');
+  }
+
+  html += `<div class="fin-section-label">Deductions from Gross Profit</div>`;
+  html += `<div class="fin-service-row"><span>Cashback Paid</span><span>−₦${fmt(d.profit?.cashback_paid)}</span></div>`;
+  html += `<div class="fin-service-row"><span>Referral Bonuses Paid</span><span>−₦${fmt(d.profit?.referral_bonuses_paid)}</span></div>`;
+  html += `<div class="fin-service-row"><span>Business Expenses</span><span>−₦${fmt(d.profit?.business_expenses)}</span></div>`;
+
+  html += `<div class="fin-section-label">Paystack</div>`;
+  html += `<div class="fin-service-row"><span>Total Funded</span><span>₦${fmt(d.paystack?.total_funded)}</span></div>`;
+  html += `<div class="fin-service-row"><span>Fees Charged to Customers</span><span>₦${fmt(d.paystack?.total_fees_charged)}</span></div>`;
+  html += `<div class="fin-service-row"><span>Funding Count</span><span>${d.paystack?.funding_count ?? 0}</span></div>`;
+
+  html += `<div class="fin-section-label">Withdrawals</div>`;
+  html += `<div class="fin-service-row"><span>Completed</span><span>₦${fmt(d.withdrawals?.total_completed)}</span></div>`;
+  html += `<div class="fin-service-row"><span>Pending (${d.withdrawals?.pending_count ?? 0})</span><span>₦${fmt(d.withdrawals?.total_pending)}</span></div>`;
+
+  wrap.innerHTML = html;
+}
+
+// --- CAPITAL ---
+async function loadFinCapital(){
+  const wrap = byId('finCapitalPanel');
+
+  const currentBalance = finOverviewCache?.provider_capital?.clubkonnect_balance;
+  const balanceLine = currentBalance !== undefined
+    ? `<div class="fin-service-row"><span>Current Recorded Balance (ClubKonnect)</span><span>₦${fmt(currentBalance)}</span></div>`
+    : `<div class="fin-service-row"><span>Current Recorded Balance</span><span>Visit Overview tab to load</span></div>`;
+
+  wrap.innerHTML = `
+    ${balanceLine}
+
+    <div class="fin-form-card">
+      <div class="fin-form-title">Top Up Provider Capital</div>
+      <div class="fin-form-row">
+        <input type="number" id="capTopupAmount" placeholder="Amount (₦)" min="0" step="0.01"/>
+      </div>
+      <div class="fin-form-row">
+        <input type="text" id="capTopupNarration" placeholder="Narration (e.g. Bank transfer 22 Aug)"/>
+      </div>
+      <button class="fin-submit-btn" onclick="submitCapitalTopup()">Top Up</button>
+    </div>
+
+    <div class="fin-form-card">
+      <div class="fin-form-title">Reconcile Provider Capital</div>
+      <div class="fin-form-row">
+        <input type="number" id="capReconcileBalance" placeholder="Actual balance shown on ClubKonnect dashboard (₦)" min="0" step="0.01"/>
+      </div>
+      <div class="fin-form-row">
+        <input type="text" id="capReconcileReason" placeholder="Reason for the adjustment"/>
+      </div>
+      <button class="fin-submit-btn" onclick="submitCapitalReconcile()">Reconcile</button>
+    </div>
+  `;
+}
+
+window.submitCapitalTopup = async function(){
+  const amount = Number(val('capTopupAmount'));
+  const narration = val('capTopupNarration') || 'Manual capital top-up';
+
+  if(!val('capTopupAmount') || isNaN(amount) || amount <= 0){
+    finMsg('Enter a valid amount greater than 0.', true);
+    return;
+  }
+  if(!confirm(`Top up ClubKonnect capital by ₦${fmt(amount)}?`)) return;
+
+  try{
+    const res = await api('/api/admin/provider-accounts/CLUBKONNECT/topup', {
+      method: 'POST',
+      body: JSON.stringify({ amount, narration })
+    });
+    const data = await res.json();
+    if(data.success){
+      finMsg(`Topped up successfully. New balance: ₦${fmt(data.data.balance_after)}.`, false);
+      byId('capTopupAmount').value = '';
+      byId('capTopupNarration').value = '';
+      if(finOverviewCache?.provider_capital) finOverviewCache.provider_capital.clubkonnect_balance = data.data.balance_after;
+      loadFinCapital();
+    } else {
+      finMsg(data.message || 'Could not top up capital.', true);
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
+}
+
+window.submitCapitalReconcile = async function(){
+  const actual_balance = Number(val('capReconcileBalance'));
+  const reason = val('capReconcileReason');
+
+  if(!val('capReconcileBalance') || isNaN(actual_balance) || actual_balance < 0){
+    finMsg('Enter a valid balance.', true);
+    return;
+  }
+  if(!reason){
+    finMsg('A reason is required for a reconciliation adjustment.', true);
+    return;
+  }
+  if(!confirm(`Set ClubKonnect capital balance to ₦${fmt(actual_balance)}?`)) return;
+
+  try{
+    const res = await api('/api/admin/provider-accounts/CLUBKONNECT/reconcile', {
+      method: 'POST',
+      body: JSON.stringify({ actual_balance, reason })
+    });
+    const data = await res.json();
+    if(data.success){
+      finMsg(data.message, false);
+      byId('capReconcileBalance').value = '';
+      byId('capReconcileReason').value = '';
+      if(finOverviewCache?.provider_capital && data.data.balance_after !== undefined) finOverviewCache.provider_capital.clubkonnect_balance = data.data.balance_after;
+      loadFinCapital();
+    } else {
+      finMsg(data.message || 'Could not reconcile capital.', true);
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
+}
+
+// --- EXPENSES ---
+async function loadFinExpenses(){
+  const wrap = byId('finExpensesPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading expenses...</div>';
+
+  try{
+    const res = await api('/api/admin/expenses?limit=30');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load expenses: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const expenses = (data.data && data.data.expenses) || [];
+
+    let html = `
+      <div class="fin-form-card">
+        <div class="fin-form-title">Log a New Expense</div>
+        <div class="fin-form-row">
+          <input type="text" id="expCategory" placeholder="Category (e.g. Server Hosting)"/>
+          <input type="number" id="expAmount" placeholder="Amount (₦)" min="0" step="0.01"/>
+        </div>
+        <div class="fin-form-row">
+          <textarea id="expDescription" placeholder="Description"></textarea>
+        </div>
+        <div class="fin-form-row">
+          <input type="date" id="expDate"/>
+        </div>
+        <button class="fin-submit-btn" onclick="submitExpense()">Log Expense</button>
+      </div>
+      <div class="fin-section-label">Recent Expenses</div>
+    `;
+
+    if(!expenses.length){
+      html += `<div class="dash-loading" style="padding:20px 0;">No expenses logged yet.</div>`;
+    } else {
+      html += expenses.map(e => {
+        const date = e.expense_date ? new Date(e.expense_date).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '—';
+        return `
+          <div class="fin-list-row">
+            <div class="fin-list-info">
+              <div class="fin-list-title">${esc(e.category)}</div>
+              <div class="fin-list-meta">${esc(e.description || '')} · ${date}</div>
+            </div>
+            <div class="fin-list-amount neg">−₦${fmt(e.amount)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    wrap.innerHTML = html;
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.submitExpense = async function(){
+  const category = val('expCategory');
+  const amount = Number(val('expAmount'));
+  const description = val('expDescription');
+  const expense_date = val('expDate') || undefined;
+
+  if(!category){ finMsg('Category is required.', true); return; }
+  if(!val('expAmount') || isNaN(amount) || amount <= 0){ finMsg('Enter a valid amount.', true); return; }
+  if(!description){ finMsg('Description is required.', true); return; }
+
+  try{
+    const res = await api('/api/admin/expenses', {
+      method: 'POST',
+      body: JSON.stringify({ category, amount, description, expense_date })
+    });
+    const data = await res.json();
+    if(data.success){
+      finMsg('Expense logged successfully.', false);
+      byId('expCategory').value = '';
+      byId('expAmount').value = '';
+      byId('expDescription').value = '';
+      byId('expDate').value = '';
+      loadFinExpenses();
+    } else {
+      finMsg(data.message || 'Could not log expense.', true);
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
+}
+
+// --- WITHDRAWALS ---
+async function loadFinWithdrawals(){
+  const wrap = byId('finWithdrawalsPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading withdrawal info...</div>';
+
+  try{
+    const res = await api('/api/admin/withdrawals/available');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load withdrawable profit: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const w = data.data;
+
+    let html = `
+      <div class="stat-grid">
+        <div class="stat-card balance">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">₦${fmt(w.withdrawable_profit)}</div>
+          <div class="stat-label">Withdrawable Now</div>
+        </div>
+        <div class="stat-card tx">
+          <div class="stat-icon">💵</div>
+          <div class="stat-value">₦${fmt(w.gross_profit)}</div>
+          <div class="stat-label">Gross Profit (All-Time)</div>
+        </div>
+      </div>
+
+      <div class="fin-form-card">
+        <div class="fin-form-title">Request a Withdrawal</div>
+        <div class="fin-form-row">
+          <input type="number" id="wdAmount" placeholder="Amount (₦)" min="0" step="0.01"/>
+          <input type="text" id="wdDestination" placeholder="Destination (e.g. GTBank ****1234)"/>
+        </div>
+        <div class="fin-form-row">
+          <textarea id="wdNotes" placeholder="Notes (optional)"></textarea>
+        </div>
+        <button class="fin-submit-btn" onclick="submitWithdrawalRequest()">Request Withdrawal</button>
+      </div>
+
+      <div class="fin-form-card">
+        <div class="fin-form-title">Resolve a Pending Withdrawal</div>
+        <div class="fin-form-row">
+          <input type="text" id="wdResolveRef" placeholder="Withdrawal reference (e.g. WD-...)"/>
+        </div>
+        <div class="fin-form-row">
+          <button class="fin-submit-btn" onclick="resolveWithdrawal('COMPLETED')" style="background:var(--accent);">Mark Completed</button>
+          <button class="fin-submit-btn" onclick="resolveWithdrawal('REJECTED')" style="background:var(--danger);color:#fff;">Reject</button>
+          <button class="fin-submit-btn" onclick="resolveWithdrawal('CANCELLED')" style="background:var(--surface2);color:var(--text);">Cancel</button>
+        </div>
+      </div>
+
+      <div class="fin-section-label">Note</div>
+      <div class="dash-loading" style="padding:0 0 20px;text-align:left;">A running list of all withdrawal requests isn't wired up on the backend yet — use the reference shown after each request to resolve it above.</div>
+    `;
+
+    wrap.innerHTML = html;
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.submitWithdrawalRequest = async function(){
+  const amount = Number(val('wdAmount'));
+  const destination = val('wdDestination');
+  const notes = val('wdNotes');
+
+  if(!val('wdAmount') || isNaN(amount) || amount <= 0){ finMsg('Enter a valid amount.', true); return; }
+  if(!confirm(`Request a withdrawal of ₦${fmt(amount)}?`)) return;
+
+  try{
+    const res = await api('/api/admin/withdrawals', {
+      method: 'POST',
+      body: JSON.stringify({ amount, destination, notes })
+    });
+    const data = await res.json();
+    if(data.success){
+      finMsg(`Withdrawal requested. Reference: ${data.data.reference}`, false);
+      byId('wdAmount').value = '';
+      byId('wdDestination').value = '';
+      byId('wdNotes').value = '';
+      loadFinWithdrawals();
+    } else {
+      finMsg(data.message || 'Could not request withdrawal.', true);
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
+}
+
+window.resolveWithdrawal = async function(status){
+  const reference = val('wdResolveRef');
+  if(!reference){ finMsg('Enter the withdrawal reference.', true); return; }
+  if(!confirm(`Mark ${reference} as ${status}?`)) return;
+
+  try{
+    const res = await api(`/api/admin/withdrawals/${reference}/resolve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if(data.success){
+      finMsg(`Withdrawal marked ${status.toLowerCase()}.`, false);
+      byId('wdResolveRef').value = '';
+      loadFinWithdrawals();
+    } else {
+      finMsg(data.message || 'Could not resolve withdrawal.', true);
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
+}
+
+// --- SETTLEMENTS ---
+async function loadFinSettlements(){
+  const wrap = byId('finSettlementsPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading settlements...</div>';
+
+  try{
+    const res = await api('/api/admin/settlements?limit=30');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load settlements: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const settlements = (data.data && data.data.settlements) || [];
+
+    let html = `
+      <div class="fin-toolbar">
+        <button class="fin-refresh-btn" id="settlementsSyncBtn" onclick="syncSettlements()">🔄 Sync from Paystack</button>
+      </div>
+    `;
+
+    if(!settlements.length){
+      html += `<div class="dash-loading" style="padding:20px 0;">No settlements synced yet — click "Sync from Paystack" above.</div>`;
+    } else {
+      html += settlements.map(s => {
+        const date = s.settlement_date ? new Date(s.settlement_date).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '—';
+        const status = s.status || 'pending';
+        return `
+          <div class="fin-list-row">
+            <div class="fin-list-info">
+              <div class="fin-list-title">Settlement #${esc(s.settlement_id)}</div>
+              <div class="fin-list-meta">${date} · synced ${s.synced_at ? new Date(s.synced_at).toLocaleString('en-NG') : '—'}</div>
+            </div>
+            <div class="status-badge ${status}">${status}</div>
+            <div class="fin-list-amount pos">₦${fmt(s.total_amount)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    wrap.innerHTML = html;
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+window.syncSettlements = async function(){
+  const btn = byId('settlementsSyncBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Syncing...'; }
+
+  try{
+    const res = await api('/api/admin/settlements/sync', { method: 'POST' });
+    const data = await res.json();
+    if(data.success){
+      finMsg(data.message, false);
+      loadFinSettlements();
+    } else {
+      finMsg(data.message || 'Sync failed.', true);
+      if(btn){ btn.disabled = false; btn.textContent = '🔄 Sync from Paystack'; }
+    }
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+    if(btn){ btn.disabled = false; btn.textContent = '🔄 Sync from Paystack'; }
   }
 }
 
