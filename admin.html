@@ -2060,17 +2060,57 @@ async function loadFinCapital(){
       <button class="fin-submit-btn" onclick="submitCapitalTopup()">Top Up</button>
     </div>
 
-    <div class="fin-form-card">
+        <div class="fin-form-card">
       <div class="fin-form-title">Reconcile Provider Capital</div>
       <div class="fin-form-row">
         <input type="number" id="capReconcileBalance" placeholder="Actual balance shown on ClubKonnect dashboard (₦)" min="0" step="0.01"/>
       </div>
-      <div class="fin-form-row">
-        <input type="text" id="capReconcileReason" placeholder="Reason for the adjustment"/>
-      </div>
-      <button class="fin-submit-btn" onclick="submitCapitalReconcile()">Reconcile</button>
+      <button class="fin-submit-btn" onclick="previewCapitalReconcile()">Check Balance</button>
+      <div id="capReconcilePreview"></div>
     </div>
   `;
+}
+
+window.previewCapitalReconcile = async function(){
+  const actual_balance = val('capReconcileBalance');
+
+  if(!actual_balance || isNaN(Number(actual_balance)) || Number(actual_balance) < 0){
+    finMsg('Enter a valid balance.', true);
+    return;
+  }
+
+  try{
+    const res = await api(`/api/admin/provider-accounts/CLUBKONNECT/reconcile-preview?actual_balance=${encodeURIComponent(actual_balance)}`);
+    const data = await res.json();
+
+    if(!data.success){
+      finMsg(data.message || 'Could not check balance.', true);
+      return;
+    }
+
+    const p = data.data;
+    const isReconciled = p.status === 'RECONCILED';
+    const statusColor = isReconciled ? 'var(--accent)' : 'var(--danger)';
+    const diffSign = p.difference > 0 ? '+' : '';
+
+    byId('capReconcilePreview').innerHTML = `
+      <div class="wallet-box">
+        <div class="kyc-row"><span>Expected (QuickTop records)</span><span>₦${fmt(p.expected_balance)}</span></div>
+        <div class="kyc-row"><span>Actual (ClubKonnect dashboard)</span><span>₦${fmt(p.actual_balance)}</span></div>
+        <div class="kyc-row"><span>Difference</span><span style="color:${statusColor}">${diffSign}₦${fmt(p.difference)}</span></div>
+        <div class="kyc-row"><span>Status</span><span style="color:${statusColor}">${isReconciled ? '✅ Reconciled' : '⚠️ Requires Investigation'}</span></div>
+        ${isReconciled ? '' : `
+          <div class="fin-form-row" style="margin-top:12px;">
+            <input type="text" id="capReconcileReason" placeholder="Reason for this adjustment"/>
+          </div>
+          <button class="fin-submit-btn" style="background:var(--danger);color:#fff;" onclick="submitCapitalReconcile()">Apply Adjustment</button>
+        `}
+      </div>
+    `;
+
+  }catch(e){
+    finMsg('Network error. Try again.', true);
+  }
 }
 
 window.submitCapitalTopup = async function(){
@@ -2105,7 +2145,8 @@ window.submitCapitalTopup = async function(){
 
 window.submitCapitalReconcile = async function(){
   const actual_balance = Number(val('capReconcileBalance'));
-  const reason = val('capReconcileReason');
+  const reasonEl = byId('capReconcileReason');
+  const reason = reasonEl ? reasonEl.value.trim() : '';
 
   if(!val('capReconcileBalance') || isNaN(actual_balance) || actual_balance < 0){
     finMsg('Enter a valid balance.', true);
