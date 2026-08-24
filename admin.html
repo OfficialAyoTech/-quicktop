@@ -1963,6 +1963,11 @@ async function loadFinOverview(){
 }
 window.loadFinOverview = loadFinOverview;
 
+window.setFinRange = function(range){
+  finCurrentRange = range;
+  loadFinOverview();
+}
+
 function renderFinRangePicker(){
   const ranges = [
     ['today','Today'],['yesterday','Yesterday'],['week','Last 7 Days'],['last_week','Last Week'],
@@ -1977,8 +1982,8 @@ function renderFinRangePicker(){
   ` : '';
 
   return `
-    <div class="fin-toolbar">
-      <select id="finRangeSelect" onchange="finCurrentRange=this.value; loadFinOverview();">${options}</select>
+        <div class="fin-toolbar">
+      <select id="finRangeSelect" onchange="setFinRange(this.value)">${options}</select>
       ${customInputs}
       <button class="fin-refresh-btn" onclick="loadFinOverview()">🔄 Refresh</button>
     </div>
