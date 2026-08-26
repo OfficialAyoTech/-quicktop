@@ -1820,6 +1820,7 @@ const data = await res.json();
     if(ok){
       if(!usedRewards) await saveBal((userProfile.balance||0)-plan.p);
       await loadRewardsBalance();
+      setTimeout(() => loadRewardsBalance(), 4000);
       resetPaySourceUI('data');
       await saveTx({type:'data',network:dataNet,phone,plan:plan.s,amount:plan.p,ref:data.reference||ref,ts:Date.now(),date:now()});
       showSuccess('Data Purchased! ✅',''+plan.s+' '+dataNet+' data sent to '+phone,[['Network',dataNet],['Data',plan.s],['Phone',phone],['Amount','₦'+plan.p.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','✅ Successful']],{service:'data',account_number:phone,provider:dataNet,metadata:{network:dataNet}});
@@ -1857,6 +1858,7 @@ const data = await res.json();
     if(ok){
       if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
       await loadRewardsBalance();
+      setTimeout(() => loadRewardsBalance(), 4000);
       resetPaySourceUI('airtime');
       await saveTx({type:'airtime',network:airtimeNet,phone,amount,ref:data.reference||ref,ts:Date.now(),date:now()});
       showSuccess('Airtime Sent! ✅','₦'+amount.toLocaleString()+' '+airtimeNet+' airtime sent to '+phone,[['Network',airtimeNet],['Phone',phone],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','✅ Successful']],{service:'airtime',account_number:phone,provider:airtimeNet,metadata:{network:airtimeNet}});
@@ -1991,6 +1993,7 @@ window.buyCable = async function(){
     if(ok){
       if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
       await loadRewardsBalance();
+      setTimeout(() => loadRewardsBalance(), 4000);
       resetPaySourceUI('cable');
       await saveTx({type:'cable', network:cableProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
       showSuccess('Subscription Sent! ✅', cableProvider+' '+packageName+' subscription is being processed', [['Provider',cableProvider],['Package',packageName],['Smart Card',smartCardNo],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'cable',account_number:smartCardNo,provider:cableProvider,metadata:{package:packageCode,packageName}});
@@ -2096,6 +2099,7 @@ window.buyElectricity = async function(){
     if(ok){
       if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
       await loadRewardsBalance();
+      setTimeout(() => loadRewardsBalance(), 4000);
       resetPaySourceUI('electricity');
       await saveTx({type:'electricity', network:electricityProvider, phone, amount, ref:data.reference||ref, ts:Date.now(), date:now()});
       showSuccess('Purchase Sent! ✅', electricityProvider+' electricity purchase is being processed', [['Provider',electricityProvider],['Meter Type',meterType==='PREPAID'?'Prepaid':'Postpaid'],['Meter No',meterNo],['Amount','₦'+amount.toLocaleString()],['Paid From',usedRewards?'🎁 Rewards':'💳 Wallet'],['Ref',data.reference||ref],['Status','⏳ Processing']],{service:'electricity',account_number:meterNo,provider:electricityProvider,metadata:{meterType}});
@@ -2166,6 +2170,7 @@ window.buyWaec = async function(){
 
       if(!usedRewards) await saveBal((userProfile.balance||0)-amount);
       await loadRewardsBalance();
+      setTimeout(() => loadRewardsBalance(), 4000);
       resetPaySourceUI('waec');
       await saveTx({type:'waec', phone, amount, ref:reference, ts:Date.now(), date:now()});
 
