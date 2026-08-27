@@ -2008,6 +2008,14 @@ function renderFinOverview(d){
 
   let html = renderFinRangePicker();
 
+if(Number(d.withdrawable_profit) < 0){
+  html += `
+    <div class="dash-error" style="text-align:left;padding:14px 16px;background:rgba(255,83,112,.1);border:1px solid var(--danger);border-radius:var(--radius);margin-bottom:18px;">
+      ⚠️ <strong>Withdrawable profit is negative (₦${fmt(d.withdrawable_profit)}).</strong> Referral rewards, cashback, or expenses have outpaced profit earned so far. No action needed — this recovers automatically as more sales come in — but avoid approving new withdrawal requests until it's back above ₦0.
+    </div>
+  `;
+}
+
   html += `<div class="stat-grid">${cards.map(c => `
     <div class="stat-card balance">
       <div class="stat-icon">${c.icon}</div>
