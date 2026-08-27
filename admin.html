@@ -461,9 +461,10 @@ input:focus{border-color:var(--accent);}
       <div class="dash-title">Cashback & Rewards</div>
       <div class="dash-sub">Service cashback pays a % of your margin on each purchase. Reward Budget is a separate reserve for future coupons/promotions — it never touches working capital or normal cashback.</div>
 
-      <div class="legal-tabs">
+            <div class="legal-tabs">
         <button class="legal-tab-btn active" id="cbTabService" onclick="switchCashbackTab('service')">⚙️ Service Cashback</button>
         <button class="legal-tab-btn" id="cbTabBudget" onclick="switchCashbackTab('budget')">💰 Reward Budget</button>
+        <button class="legal-tab-btn" id="cbTabCoupons" onclick="switchCashbackTab('coupons')">🎟️ Coupons & Rewards</button>
       </div>
 
       <div id="cashbackMsg" class="wallet-msg"></div>
@@ -474,8 +475,12 @@ input:focus{border-color:var(--accent);}
         </div>
       </div>
 
-      <div id="cbBudgetPanel" class="hidden">
+            <div id="cbBudgetPanel" class="hidden">
         <div class="dash-loading">Loading reward budget...</div>
+      </div>
+
+      <div id="cbCouponsPanel" class="hidden">
+        <div class="dash-loading">Loading coupons...</div>
       </div>
     </div>
   </div>
@@ -1916,17 +1921,23 @@ window.saveCashbackRate = async function(serviceName){
 window.switchCashbackTab = function(tab){
   byId('cbTabService').classList.toggle('active', tab === 'service');
   byId('cbTabBudget').classList.toggle('active', tab === 'budget');
+  byId('cbTabCoupons').classList.toggle('active', tab === 'coupons');
   byId('cashbackMsg').textContent = '';
   byId('cashbackMsg').className = 'wallet-msg';
 
+  hide('cbServicePanel');
+  hide('cbBudgetPanel');
+  hide('cbCouponsPanel');
+
   if(tab === 'service'){
     show('cbServicePanel');
-    hide('cbBudgetPanel');
     loadCashbackRates();
-  } else {
-    hide('cbServicePanel');
+  } else if(tab === 'budget'){
     show('cbBudgetPanel');
     loadRewardBudget();
+  } else {
+    show('cbCouponsPanel');
+    loadPromotions();
   }
 }
 
@@ -2018,6 +2029,278 @@ window.submitRewardBudgetAllocation = async function(){
   }catch(e){
     byId('cashbackMsg').className = 'wallet-msg err';
     byId('cashbackMsg').textContent = 'Network error. Try again.';
+  }
+}
+
+// COUPONS & REWARDS (PROMOTIONS)
+let promoListCache = [];
+let editingPromoId = null;
+
+const REQUIRED_SERVICE_OPTIONS = [
+  ['', 'Any Service'],
+  ['AIRTIME', 'Airtime'],
+  ['DATA', 'Data'],
+  ['ELECTRICITY', 'Electricity'],
+  ['CABLE_TV', 'Cable TV'],
+  ['WAEC', 'WAEC Result Checker']
+];
+
+const ELIGIBILITY_LABELS = {
+  FIRST_TRANSACTION: "User's First Transaction",
+  ANY_TRANSACTION: 'Any Successful Transaction',
+  NONE: 'No Purchase Required'
+};
+
+function toDateInputValue(v){
+  if(!v) return '';
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0,10);
+}
+
+async function loadPromotions(){
+  const wrap = byId('cbCouponsPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading coupons...</div>';
+
+  try{
+    const res = await api('/api/admin/promotions');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load coupons: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    promoListCache = data.data || [];
+    renderPromotionsPanel();
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+function renderPromotionsPanel(){
+  const wrap = byId('cbCouponsPanel');
+
+  const serviceOptions = REQUIRED_SERVICE_OPTIONS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+  const eligibilityOptions = Object.entries(ELIGIBILITY_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+
+  let html = `
+    <div class="fin-form-card">
+      <div class="fin-form-title" id="promoFormTitle">Create a New Coupon</div>
+      <div class="fin-form-row">
+        <input type="text" id="promoName" placeholder="Name (e.g. Welcome Bonus)"/>
+        <input type="text" id="promoCode" placeholder="Coupon code (optional)"/>
+      </div>
+      <div class="fin-form-row">
+        <textarea id="promoDescription" placeholder="Description (shown to users)"></textarea>
+      </div>
+      <div class="fin-form-row">
+        <input type="number" id="promoRewardAmount" placeholder="Reward amount (₦)" min="0" step="0.01"/>
+        <input type="number" id="promoMinTxAmount" placeholder="Min. transaction amount (₦)" min="0" step="0.01"/>
+      </div>
+      <div class="fin-form-row">
+        <input type="number" id="promoMaxClaims" placeholder="Max total claims (blank = unlimited)" min="1" step="1"/>
+        <input type="number" id="promoMaxClaimsPerUser" placeholder="Max claims per user" min="1" step="1" value="1"/>
+      </div>
+      <div class="fin-form-row">
+        <select id="promoRequiredService">${serviceOptions}</select>
+        <select id="promoEligibility">${eligibilityOptions}</select>
+      </div>
+      <div class="fin-form-row">
+        <input type="date" id="promoStartDate"/>
+        <input type="date" id="promoExpiryDate"/>
+      </div>
+      <div class="fin-form-row" style="align-items:center;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);font-weight:600;">
+          <input type="checkbox" id="promoIsActive" checked style="width:auto;"/> Active immediately
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="fin-submit-btn" id="promoSubmitBtn" onclick="submitPromotionForm()">Create Coupon</button>
+        <button class="fin-submit-btn" id="promoCancelBtn" style="background:var(--surface2);color:var(--text);display:none;" onclick="resetPromoForm()">Cancel Edit</button>
+      </div>
+    </div>
+
+    <div class="fin-section-label">Existing Coupons</div>
+  `;
+
+  if(!promoListCache.length){
+    html += `<div class="dash-loading" style="padding:0 0 20px;">No coupons created yet.</div>`;
+  } else {
+    html += promoListCache.map(p => {
+      const status = p.is_active ? 'ACTIVE' : 'SUSPENDED';
+      const statusLabel = p.is_active ? 'Active' : 'Inactive';
+      const win = `${toDateInputValue(p.start_date)} → ${toDateInputValue(p.expiry_date)}`;
+      const svcEntry = REQUIRED_SERVICE_OPTIONS.find(([v]) => v === (p.required_service || ''));
+      const svc = svcEntry ? svcEntry[1] : p.required_service;
+      return `
+        <div class="kyc-card">
+          <div class="kyc-info">
+            <div class="kyc-name">${esc(p.name)} ${p.coupon_code ? `<span style="color:var(--text2);font-weight:400;">· ${esc(p.coupon_code)}</span>` : ''}</div>
+            <div class="kyc-meta">₦${fmt(p.reward_amount)} reward · ${esc(svc)} · ${esc(ELIGIBILITY_LABELS[p.eligibility] || p.eligibility)}</div>
+            <div class="kyc-date">${win} · max ${p.max_claims ?? '∞'} claims (${p.max_claims_per_user} per user)</div>
+          </div>
+          <div class="status-badge ${status}">${statusLabel}</div>
+          <label class="toggle-switch" style="margin-left:10px;">
+            <input type="checkbox" ${p.is_active ? 'checked' : ''} onchange="togglePromotionActiveState(${p.id}, this)"/>
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="view-btn" onclick="editPromotion(${p.id})">Edit</button>
+          <button class="btn-reverse" onclick="deletePromotionRow(${p.id})">Delete</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  wrap.innerHTML = html;
+}
+
+function readPromoForm(){
+  const name = val('promoName');
+  const reward_amount = Number(val('promoRewardAmount'));
+  const start_date = val('promoStartDate');
+  const expiry_date = val('promoExpiryDate');
+  const msg = byId('cashbackMsg');
+
+  if(!name){ msg.className = 'wallet-msg err'; msg.textContent = 'Name is required.'; return null; }
+  if(!val('promoRewardAmount') || isNaN(reward_amount) || reward_amount <= 0){ msg.className = 'wallet-msg err'; msg.textContent = 'Enter a valid reward amount.'; return null; }
+  if(!start_date || !expiry_date){ msg.className = 'wallet-msg err'; msg.textContent = 'Start and expiry dates are required.'; return null; }
+  if(new Date(expiry_date) <= new Date(start_date)){ msg.className = 'wallet-msg err'; msg.textContent = 'Expiry date must be after start date.'; return null; }
+
+  const maxClaimsRaw = val('promoMaxClaims');
+
+  return {
+    name,
+    description: val('promoDescription') || null,
+    reward_amount,
+    reward_type: 'WALLET_CREDIT',
+    max_claims: maxClaimsRaw ? Number(maxClaimsRaw) : null,
+    max_claims_per_user: Number(val('promoMaxClaimsPerUser')) || 1,
+    start_date,
+    expiry_date,
+    min_transaction_amount: Number(val('promoMinTxAmount')) || 0,
+    required_service: val('promoRequiredService') || null,
+    eligibility: val('promoEligibility') || 'FIRST_TRANSACTION',
+    coupon_code: val('promoCode') || null,
+    is_active: byId('promoIsActive').checked
+  };
+}
+
+window.submitPromotionForm = async function(){
+  const payload = readPromoForm();
+  if(!payload) return;
+
+  const isEdit = editingPromoId !== null;
+  const btn = byId('promoSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = isEdit ? 'Saving...' : 'Creating...';
+
+  try{
+    const res = isEdit
+      ? await api(`/api/admin/promotions/${editingPromoId}`, { method: 'PATCH', body: JSON.stringify(payload) })
+      : await api('/api/admin/promotions', { method: 'POST', body: JSON.stringify(payload) });
+
+    const data = await res.json();
+
+    if(data.success){
+      byId('cashbackMsg').className = 'wallet-msg ok';
+      byId('cashbackMsg').textContent = isEdit ? 'Coupon updated successfully.' : 'Coupon created successfully.';
+      resetPromoForm();
+      await loadPromotions();
+    } else {
+      byId('cashbackMsg').className = 'wallet-msg err';
+      byId('cashbackMsg').textContent = data.message || 'Could not save coupon.';
+    }
+  }catch(e){
+    byId('cashbackMsg').className = 'wallet-msg err';
+    byId('cashbackMsg').textContent = 'Network error. Try again.';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = editingPromoId !== null ? 'Save Changes' : 'Create Coupon';
+  }
+}
+
+window.editPromotion = function(id){
+  const p = promoListCache.find(x => x.id === id);
+  if(!p) return;
+
+  editingPromoId = id;
+  byId('promoFormTitle').textContent = `Editing: ${p.name}`;
+  byId('promoName').value = p.name || '';
+  byId('promoCode').value = p.coupon_code || '';
+  byId('promoDescription').value = p.description || '';
+  byId('promoRewardAmount').value = p.reward_amount || '';
+  byId('promoMinTxAmount').value = p.min_transaction_amount || '';
+  byId('promoMaxClaims').value = p.max_claims ?? '';
+  byId('promoMaxClaimsPerUser').value = p.max_claims_per_user || 1;
+  byId('promoRequiredService').value = p.required_service || '';
+  byId('promoEligibility').value = p.eligibility || 'FIRST_TRANSACTION';
+  byId('promoStartDate').value = toDateInputValue(p.start_date);
+  byId('promoExpiryDate').value = toDateInputValue(p.expiry_date);
+  byId('promoIsActive').checked = !!p.is_active;
+
+  byId('promoSubmitBtn').textContent = 'Save Changes';
+  byId('promoCancelBtn').style.display = 'inline-block';
+  byId('cbCouponsPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+window.resetPromoForm = function(){
+  editingPromoId = null;
+  byId('promoFormTitle').textContent = 'Create a New Coupon';
+  byId('promoName').value = '';
+  byId('promoCode').value = '';
+  byId('promoDescription').value = '';
+  byId('promoRewardAmount').value = '';
+  byId('promoMinTxAmount').value = '';
+  byId('promoMaxClaims').value = '';
+  byId('promoMaxClaimsPerUser').value = '1';
+  byId('promoRequiredService').value = '';
+  byId('promoEligibility').value = 'FIRST_TRANSACTION';
+  byId('promoStartDate').value = '';
+  byId('promoExpiryDate').value = '';
+  byId('promoIsActive').checked = true;
+  byId('promoSubmitBtn').textContent = 'Create Coupon';
+  byId('promoCancelBtn').style.display = 'none';
+}
+
+window.togglePromotionActiveState = async function(id, checkboxEl){
+  const is_active = checkboxEl.checked;
+
+  try{
+    const res = await api(`/api/admin/promotions/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = promoListCache.findIndex(p => p.id === id);
+      if(idx !== -1) promoListCache[idx] = data.data;
+      renderPromotionsPanel();
+    } else {
+      alert('Could not update coupon: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !is_active;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !is_active;
+  }
+}
+
+window.deletePromotionRow = async function(id){
+  const p = promoListCache.find(x => x.id === id);
+  if(!confirm(`Delete coupon "${p ? p.name : id}"? This cannot be undone. Claims already made against it are not affected.`)) return;
+
+  try{
+    const res = await api(`/api/admin/promotions/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if(data.success){
+      await loadPromotions();
+    } else {
+      alert('Could not delete coupon: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
   }
 }
 
