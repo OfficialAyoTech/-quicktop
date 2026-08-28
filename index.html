@@ -262,6 +262,12 @@ select option{background:var(--surface);}
 .carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
 .carousel-dot{width:6px;height:6px;border-radius:50%;background:var(--surface2);transition:background .2s;}
 .carousel-dot.active{background:var(--accent);}
+.coupon-card{background:var(--surface);border:1px solid var(--surface2);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.coupon-card .coupon-name{font-weight:700;font-size:15px;margin-bottom:4px;}
+.coupon-card .coupon-desc{font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5;}
+.coupon-card .coupon-amt{font-weight:800;color:var(--accent);font-size:17px;margin-bottom:12px;}
+.coupon-card .claim-btn{width:100%;}
+.coupon-card .claim-btn.claimed{background:var(--surface2);color:var(--text2);cursor:default;}
 .carousel-slide.ad-slide{background-size:cover;background-position:center;min-height:140px;position:relative;padding:16px 20px 18px;justify-content:flex-end;}
 .carousel-slide.ad-slide::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,15,30,0) 30%,rgba(10,15,30,.85) 100%);border-radius:16px;}
 .carousel-slide.ad-slide .carousel-title,.carousel-slide.ad-slide .carousel-sub{position:relative;z-index:1;color:#fff;}
@@ -455,6 +461,7 @@ select option{background:var(--surface);}
     <div class="qa" onclick="goTo('waecScreen')"><span class="qa-icon">🎓</span><div class="qa-label">WAEC</div></div>
     <div class="qa" onclick="toast('Coming Soon 🚧  This feature is currently under development.')"><span class="qa-icon">🎲</span><div class="qa-label">Betting</div></div>
     <div class="qa" onclick="goTo('referScreen')"><span class="qa-icon">🎁</span><div class="qa-label">Reward</div></div>
+    <div class="qa" onclick="goTo('couponsScreen')"><span class="qa-icon">🎟️</span><div class="qa-label">Coupons</div></div>
   </div>
   <div class="section-title">Recent Transactions</div>
   <div class="tx-list" id="homeTx"></div>
@@ -770,6 +777,15 @@ select option{background:var(--surface);}
     </div>
 
     <div class="info-box" style="margin-top:16px;">💡 Share your link → your friend signs up, funds their wallet, and spends ₦500 or more → you earn ₦500.</div>
+  </div>
+</div>
+
+<!-- COUPONS & REWARDS -->
+<div class="screen" id="couponsScreen">
+  <div class="page-header"><div class="back-btn" onclick="goTo('homeScreen')">←</div><h2>Coupons &amp; Rewards</h2></div>
+  <div class="content">
+    <div class="info-box">🎟️ Claim available rewards below — credited straight to your wallet.</div>
+    <div id="couponsList"></div>
   </div>
 </div>
 
@@ -1714,6 +1730,7 @@ window.goTo = function(id, fromPop){
   if(id==='referScreen') loadReferDashboard();
   if(id==='deleteAccountScreen') prepDeleteAccountScreen();
   if(id==='kycScreen') loadKycStatus();
+  if(id==='couponsScreen') loadCoupons();
   window.scrollTo(0,0);
   if(!fromPop) history.pushState({screen:id}, '', '');
 }
@@ -2799,6 +2816,59 @@ window.shareReferralLink = async function(){
     try{ await navigator.share({ text }); }catch(e){ /* user cancelled share, no-op */ }
   } else {
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  }
+}
+
+// COUPONS & REWARDS
+window.loadCoupons = async function(){
+  const list = byId('couponsList');
+  list.innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">Loading...</p>';
+
+  try{
+    const res = await api('/api/promotions/active');
+    const data = await res.json();
+    const items = (data.success && Array.isArray(data.data)) ? data.data : [];
+
+    if(!items.length){
+      list.innerHTML = '<div class="empty"><div class="empty-icon">🎟️</div><p>No coupons available right now.<br>Check back soon!</p></div>';
+      return;
+    }
+
+    list.innerHTML = items.map(p=>{
+      const claimed = p.claim_count >= p.max_claims_per_user;
+      return `
+        <div class="coupon-card">
+          <div class="coupon-name">${p.name}</div>
+          ${p.description ? `<div class="coupon-desc">${p.description}</div>` : ''}
+          <div class="coupon-amt">₦${Number(p.reward_amount).toLocaleString()}</div>
+          <button class="btn btn-primary claim-btn ${claimed?'claimed':''}" ${claimed?'disabled':''} onclick="claimCoupon(${p.id}, this)">
+            ${claimed ? '✓ CLAIMED' : 'Claim'}
+          </button>
+        </div>`;
+    }).join('');
+  }catch(e){
+    list.innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px 0;">Could not load coupons.</p>';
+  }
+}
+
+window.claimCoupon = async function(id, btn){
+  btn.textContent = 'Claiming...'; btn.disabled = true;
+
+  try{
+    const res = await api('/api/promotions/'+id+'/claim', { method:'POST' });
+    const data = await res.json();
+
+    if(data.success === true){
+      toast('✅ ' + (data.message || 'Reward claimed!'));
+      await loadProfile(); // refresh wallet balance since claim credits it directly
+      await loadCoupons(); // refresh list to show CLAIMED state from backend
+    } else {
+      btn.textContent = 'Claim'; btn.disabled = false;
+      toast('❌ ' + (data?.message || 'Could not claim this reward'));
+    }
+  }catch(e){
+    btn.textContent = 'Claim'; btn.disabled = false;
+    toast('Network error. Try again.');
   }
 }
 
