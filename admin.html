@@ -465,6 +465,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <button class="legal-tab-btn active" id="cbTabService" onclick="switchCashbackTab('service')">⚙️ Service Cashback</button>
         <button class="legal-tab-btn" id="cbTabBudget" onclick="switchCashbackTab('budget')">💰 Reward Budget</button>
         <button class="legal-tab-btn" id="cbTabCoupons" onclick="switchCashbackTab('coupons')">🎟️ Coupons & Rewards</button>
+        <button class="legal-tab-btn" id="cbTabAds" onclick="switchCashbackTab('ads')">📢 Advertisements</button>
       </div>
 
       <div id="cashbackMsg" class="wallet-msg"></div>
@@ -479,8 +480,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <div class="dash-loading">Loading reward budget...</div>
       </div>
 
-      <div id="cbCouponsPanel" class="hidden">
+            <div id="cbCouponsPanel" class="hidden">
         <div class="dash-loading">Loading coupons...</div>
+      </div>
+
+      <div id="cbAdsPanel" class="hidden">
+        <div class="dash-loading">Loading advertisements...</div>
       </div>
     </div>
   </div>
@@ -603,6 +608,17 @@ async function api(path, options = {}) {
       "Authorization": `Bearer ${token}`,
       ...(options.headers || {})
     }
+  });
+}
+
+async function apiUpload(path, formData, method = 'POST'){
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not signed in");
+  const token = await user.getIdToken(true);
+  return fetch(`${BACKEND}${path}`, {
+    method,
+    headers: { "Authorization": `Bearer ${token}` },
+    body: formData
   });
 }
 
@@ -1922,12 +1938,14 @@ window.switchCashbackTab = function(tab){
   byId('cbTabService').classList.toggle('active', tab === 'service');
   byId('cbTabBudget').classList.toggle('active', tab === 'budget');
   byId('cbTabCoupons').classList.toggle('active', tab === 'coupons');
+  byId('cbTabAds').classList.toggle('active', tab === 'ads');
   byId('cashbackMsg').textContent = '';
   byId('cashbackMsg').className = 'wallet-msg';
 
   hide('cbServicePanel');
   hide('cbBudgetPanel');
   hide('cbCouponsPanel');
+  hide('cbAdsPanel');
 
   if(tab === 'service'){
     show('cbServicePanel');
@@ -1935,9 +1953,12 @@ window.switchCashbackTab = function(tab){
   } else if(tab === 'budget'){
     show('cbBudgetPanel');
     loadRewardBudget();
-  } else {
+  } else if(tab === 'coupons'){
     show('cbCouponsPanel');
     loadPromotions();
+  } else {
+    show('cbAdsPanel');
+    loadAdvertisements();
   }
 }
 
@@ -2298,6 +2319,266 @@ window.deletePromotionRow = async function(id){
       await loadPromotions();
     } else {
       alert('Could not delete coupon: ' + (data.message || 'Unknown error'));
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+  }
+}
+
+// ADVERTISEMENTS
+let adListCache = [];
+let adPromoOptionsCache = [];
+let editingAdId = null;
+
+const AD_STATUS_LABELS = {
+  ACTIVE: 'Live Now',
+  SCHEDULED: 'Scheduled',
+  EXPIRED: 'Expired',
+  INACTIVE: 'Inactive'
+};
+
+async function ensureAdPromoOptions(){
+  if(adPromoOptionsCache.length) return;
+  try{
+    const res = await api('/api/admin/promotions');
+    const data = await res.json();
+    if(data.success) adPromoOptionsCache = data.data || [];
+  }catch(e){ /* dropdown just stays empty on failure, non-fatal */ }
+}
+
+async function loadAdvertisements(){
+  const wrap = byId('cbAdsPanel');
+  wrap.innerHTML = '<div class="dash-loading">Loading advertisements...</div>';
+
+  try{
+    await ensureAdPromoOptions();
+    const res = await api('/api/admin/advertisements');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load advertisements: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    adListCache = data.data || [];
+    renderAdvertisementsPanel();
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+function renderAdvertisementsPanel(){
+  const wrap = byId('cbAdsPanel');
+
+  const promoOptions = ['<option value="">No linked coupon</option>']
+    .concat(adPromoOptionsCache.map(p => `<option value="${p.id}">${esc(p.name)}</option>`))
+    .join('');
+
+  let html = `
+    <div class="fin-form-card">
+      <div class="fin-form-title" id="adFormTitle">Create a New Advertisement</div>
+      <div class="fin-form-row">
+        <input type="text" id="adTitle" placeholder="Title"/>
+        <input type="text" id="adButtonText" placeholder="Button text (e.g. Claim Now)"/>
+      </div>
+      <div class="fin-form-row">
+        <textarea id="adSubtitle" placeholder="Subtitle (shown under the title)"></textarea>
+      </div>
+      <div class="fin-form-row">
+        <input type="text" id="adButtonAction" placeholder="Button action (e.g. a screen name or URL)"/>
+        <input type="number" id="adDisplayOrder" placeholder="Display order (0 = first)" min="0" step="1" value="0"/>
+      </div>
+      <div class="fin-form-row">
+        <select id="adLinkedPromo">${promoOptions}</select>
+      </div>
+      <div class="fin-form-row">
+        <input type="date" id="adStartDate"/>
+        <input type="date" id="adExpiryDate"/>
+      </div>
+      <div class="fin-form-row" style="flex-direction:column;align-items:flex-start;">
+        <label style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600;">Banner Image <span id="adImageRequiredNote">(required)</span></label>
+        <input type="file" id="adImageFile" accept="image/*" style="padding:10px;"/>
+        <div id="adCurrentImageNote" class="fin-list-meta" style="margin-top:6px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="fin-submit-btn" id="adSubmitBtn" onclick="submitAdForm()">Create Advertisement</button>
+        <button class="fin-submit-btn" id="adCancelBtn" style="background:var(--surface2);color:var(--text);display:none;" onclick="resetAdForm()">Cancel Edit</button>
+      </div>
+    </div>
+
+    <div class="fin-section-label">Existing Advertisements</div>
+  `;
+
+  if(!adListCache.length){
+    html += `<div class="dash-loading" style="padding:0 0 20px;">No advertisements created yet.</div>`;
+  } else {
+    html += adListCache.map(a => {
+      const status = a.effective_status || (a.is_active ? 'ACTIVE' : 'INACTIVE');
+      const win = `${toDateInputValue(a.start_date)} → ${toDateInputValue(a.expiry_date)}`;
+      const linkedPromo = adPromoOptionsCache.find(p => p.id === a.linked_promotion_id);
+      return `
+        <div class="kyc-card">
+          <div class="kyc-avatar" style="border-radius:8px;overflow:hidden;">
+            <img src="${a.image_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0.2"/>
+          </div>
+          <div class="kyc-info">
+            <div class="kyc-name">${esc(a.title)} ${linkedPromo ? `<span style="color:var(--text2);font-weight:400;">· links to ${esc(linkedPromo.name)}</span>` : ''}</div>
+            <div class="kyc-meta">Order ${a.display_order}${a.button_text ? ' · Button: ' + esc(a.button_text) : ''}</div>
+            <div class="kyc-date">${win}</div>
+          </div>
+          <div class="status-badge ${status === 'ACTIVE' ? 'ACTIVE' : (status === 'EXPIRED' ? 'REJECTED' : 'PENDING')}">${AD_STATUS_LABELS[status] || status}</div>
+          <label class="toggle-switch" style="margin-left:10px;">
+            <input type="checkbox" ${a.is_active ? 'checked' : ''} onchange="toggleAdActiveState(${a.id}, this)"/>
+            <span class="toggle-slider"></span>
+          </label>
+          <button class="view-btn" onclick="editAd(${a.id})">Edit</button>
+          <button class="btn-reverse" onclick="deleteAdRow(${a.id})">Delete</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  wrap.innerHTML = html;
+}
+
+function buildAdFormData(){
+  const title = val('adTitle');
+  const start_date = val('adStartDate');
+  const expiry_date = val('adExpiryDate');
+  const fileInput = byId('adImageFile');
+  const file = fileInput.files[0];
+  const msg = byId('cashbackMsg');
+
+  if(!title){ msg.className = 'wallet-msg err'; msg.textContent = 'Title is required.'; return null; }
+  if(!start_date || !expiry_date){ msg.className = 'wallet-msg err'; msg.textContent = 'Start and expiry dates are required.'; return null; }
+  if(new Date(expiry_date) <= new Date(start_date)){ msg.className = 'wallet-msg err'; msg.textContent = 'Expiry date must be after start date.'; return null; }
+  if(!file && editingAdId === null){ msg.className = 'wallet-msg err'; msg.textContent = 'A banner image is required for a new advertisement.'; return null; }
+
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('subtitle', val('adSubtitle'));
+  fd.append('button_text', val('adButtonText'));
+  fd.append('button_action', val('adButtonAction'));
+  fd.append('display_order', val('adDisplayOrder') || '0');
+  fd.append('start_date', start_date);
+  fd.append('expiry_date', expiry_date);
+  fd.append('linked_promotion_id', val('adLinkedPromo'));
+  if(editingAdId === null) fd.append('is_active', byId('adIsActiveHidden') ? byId('adIsActiveHidden').value : 'true');
+  if(file) fd.append('image', file);
+
+  return fd;
+}
+
+window.submitAdForm = async function(){
+  const fd = buildAdFormData();
+  if(!fd) return;
+
+  const isEdit = editingAdId !== null;
+  const btn = byId('adSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = isEdit ? 'Saving...' : 'Creating...';
+
+  try{
+    const res = isEdit
+      ? await apiUpload(`/api/admin/advertisements/${editingAdId}`, fd, 'PATCH')
+      : await apiUpload('/api/admin/advertisements', fd, 'POST');
+
+    const data = await res.json();
+
+    if(data.success){
+      byId('cashbackMsg').className = 'wallet-msg ok';
+      byId('cashbackMsg').textContent = isEdit ? 'Advertisement updated successfully.' : 'Advertisement created successfully.';
+      resetAdForm();
+      await loadAdvertisements();
+    } else {
+      byId('cashbackMsg').className = 'wallet-msg err';
+      byId('cashbackMsg').textContent = data.message || 'Could not save advertisement.';
+    }
+  }catch(e){
+    byId('cashbackMsg').className = 'wallet-msg err';
+    byId('cashbackMsg').textContent = 'Network error. Try again.';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = editingAdId !== null ? 'Save Changes' : 'Create Advertisement';
+  }
+}
+
+window.editAd = function(id){
+  const a = adListCache.find(x => x.id === id);
+  if(!a) return;
+
+  editingAdId = id;
+  byId('adFormTitle').textContent = `Editing: ${a.title}`;
+  byId('adTitle').value = a.title || '';
+  byId('adSubtitle').value = a.subtitle || '';
+  byId('adButtonText').value = a.button_text || '';
+  byId('adButtonAction').value = a.button_action || '';
+  byId('adDisplayOrder').value = a.display_order ?? 0;
+  byId('adLinkedPromo').value = a.linked_promotion_id || '';
+  byId('adStartDate').value = toDateInputValue(a.start_date);
+  byId('adExpiryDate').value = toDateInputValue(a.expiry_date);
+  byId('adImageFile').value = '';
+  byId('adImageRequiredNote').textContent = '(leave empty to keep current image)';
+  byId('adCurrentImageNote').innerHTML = `Current image: <a href="${a.image_url}" target="_blank" style="color:var(--accent);">view</a>`;
+
+  byId('adSubmitBtn').textContent = 'Save Changes';
+  byId('adCancelBtn').style.display = 'inline-block';
+  byId('cbAdsPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+window.resetAdForm = function(){
+  editingAdId = null;
+  byId('adFormTitle').textContent = 'Create a New Advertisement';
+  byId('adTitle').value = '';
+  byId('adSubtitle').value = '';
+  byId('adButtonText').value = '';
+  byId('adButtonAction').value = '';
+  byId('adDisplayOrder').value = '0';
+  byId('adLinkedPromo').value = '';
+  byId('adStartDate').value = '';
+  byId('adExpiryDate').value = '';
+  byId('adImageFile').value = '';
+  byId('adImageRequiredNote').textContent = '(required)';
+  byId('adCurrentImageNote').innerHTML = '';
+  byId('adSubmitBtn').textContent = 'Create Advertisement';
+  byId('adCancelBtn').style.display = 'none';
+}
+
+window.toggleAdActiveState = async function(id, checkboxEl){
+  const is_active = checkboxEl.checked;
+
+  try{
+    const res = await api(`/api/admin/advertisements/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = adListCache.findIndex(a => a.id === id);
+      if(idx !== -1) adListCache[idx] = data.data;
+      renderAdvertisementsPanel();
+    } else {
+      alert('Could not update advertisement: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !is_active;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !is_active;
+  }
+}
+
+window.deleteAdRow = async function(id){
+  const a = adListCache.find(x => x.id === id);
+  if(!confirm(`Delete advertisement "${a ? a.title : id}"? This cannot be undone.`)) return;
+
+  try{
+    const res = await api(`/api/admin/advertisements/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if(data.success){
+      await loadAdvertisements();
+    } else {
+      alert('Could not delete advertisement: ' + (data.message || 'Unknown error'));
     }
   }catch(e){
     alert('Network error. Try again.');
