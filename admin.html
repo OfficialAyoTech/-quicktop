@@ -24,8 +24,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .login-sub{color:var(--text2);font-size:14px;margin-bottom:28px;}
 .form-group{margin-bottom:16px;}
 .form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:600;}
-input{width:100%;background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:13px 16px;color:var(--text);font-size:15px;outline:none;transition:border .2s;font-family:inherit;}
-input:focus{border-color:var(--accent);}
+input,select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--surface2);border-radius:var(--radius-sm);padding:13px 16px;color:var(--text);font-size:15px;outline:none;transition:border .2s;font-family:inherit;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 .btn-primary{width:100%;background:var(--accent);color:#0A0F1E;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s;}
 .btn-primary:disabled{opacity:.5;cursor:default;}
 .login-err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px;}
