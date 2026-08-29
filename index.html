@@ -3355,12 +3355,18 @@ async function loadHomeAds(){
 
     track.insertAdjacentHTML('afterbegin', adHTML);
     initHomeCarousel();
+
+    // Fire-and-forget — never let tracking failures affect the carousel.
+    ads.forEach(ad => {
+      api('/api/advertisements/'+ad.id+'/impression', { method:'POST' }).catch(()=>{});
+    });
   }catch(e){
     // silent — ads are a non-critical homepage enhancement
   }
 }
 
 window.handleAdClick = function(adId){
+  api('/api/advertisements/'+adId+'/click', { method:'POST' }).catch(()=>{});
   const ad = (window._homeAds || []).find(a => String(a.id) === String(adId));
   if(!ad || !ad.button_action) return;
   const action = ad.button_action.trim();
