@@ -2545,10 +2545,11 @@ function renderAdvertisementsPanel(){
           <div class="kyc-avatar" style="border-radius:8px;overflow:hidden;">
             <img src="${a.image_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0.2"/>
           </div>
-          <div class="kyc-info">
+           <div class="kyc-info">
             <div class="kyc-name">${esc(a.title)} ${linkedPromo ? `<span style="color:var(--text2);font-weight:400;">· links to ${esc(linkedPromo.name)}</span>` : ''}</div>
             <div class="kyc-meta">Order ${a.display_order}${a.button_text ? ' · Button: ' + esc(a.button_text) : ''}</div>
             <div class="kyc-date">${win}</div>
+            <div class="kyc-date">👁️ ${a.impression_count||0} impressions · 🖱️ ${a.click_count||0} clicks (${a.impression_count ? ((a.click_count||0)/a.impression_count*100).toFixed(1) : '0.0'}% CTR)${linkedPromo ? ` · 🎟️ ${a.claim_count||0} claims · ₦${fmt(a.rewards_distributed||0)} distributed` : ''}</div>
           </div>
           <div class="status-badge ${status === 'ACTIVE' ? 'ACTIVE' : (status === 'EXPIRED' ? 'REJECTED' : 'PENDING')}">${AD_STATUS_LABELS[status] || status}</div>
           <label class="toggle-switch" style="margin-left:10px;">
