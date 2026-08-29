@@ -1160,9 +1160,16 @@ let planLoading = {};
 
 function deriveValidity(name){
   const n = (name||'').toLowerCase();
-  if(n.includes('weekly')) return 'Weekly';
   if(n.includes('monthly')) return 'Monthly';
-  if(n.includes('daily') || n.includes('day')) return 'Daily';
+  if(n.includes('weekly')) return 'Weekly';
+  if(n.includes('daily')) return 'Daily';
+  const m = n.match(/(\d+)\s*day/);
+  if(m){
+    const days = parseInt(m[1],10);
+    if(days >= 28) return 'Monthly';
+    if(days >= 6) return 'Weekly';
+    return 'Daily';
+  }
   return '';
 }
 
