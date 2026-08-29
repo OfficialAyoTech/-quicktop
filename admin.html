@@ -401,7 +401,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div class="dash-title">Data Plans</div>
       <div class="dash-sub">Set sell prices and margins. Cost prices sync from Clubkonnect.</div>
 
-      <div class="users-toolbar">
+            <div class="users-toolbar">
         <select id="dpNetworkFilter" onchange="renderDataPlans()">
           <option value="">All Networks</option>
           <option value="MTN">MTN</option>
@@ -409,7 +409,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
           <option value="AIRTEL">Airtel</option>
           <option value="9MOBILE">9mobile</option>
         </select>
+        <select id="dpProviderFilter" onchange="renderDataPlans()">
+          <option value="">All Providers</option>
+          <option value="CLUBKONNECT">ClubKonnect</option>
+          <option value="ERICODATA">EricoData</option>
+        </select>
         <button class="page-btn" onclick="syncDataPlans()" id="dpSyncBtn">🔄 Sync from Clubkonnect</button>
+        <button class="page-btn" onclick="syncEricoDataPlans()" id="dpSyncEricoBtn">🔄 Sync from EricoData</button>
       </div>
 
       <div id="dpSyncMsg" class="wallet-msg"></div>
@@ -1499,10 +1505,14 @@ async function loadDataPlans(){
 window.renderDataPlans = function(){
   const wrap = byId('dataPlansListWrap');
   const networkFilter = val('dpNetworkFilter');
+  const providerFilter = val('dpProviderFilter');
 
   let plans = dpListCache;
   if(networkFilter){
     plans = plans.filter(p => p.network === networkFilter);
+  }
+  if(providerFilter){
+    plans = plans.filter(p => (p.provider || 'CLUBKONNECT') === providerFilter);
   }
 
   if(!plans.length){
@@ -1515,11 +1525,20 @@ window.renderDataPlans = function(){
     const sell = Number(p.sell_price);
     const margin = sell - cost;
     const marginCls = margin >= 0 ? 'pos' : 'neg';
+    const provider = p.provider || 'CLUBKONNECT';
+    const inactiveStyle = p.is_active ? '' : 'opacity:.5;';
     return `
-      <div class="dp-card">
+      <div class="dp-card" style="${inactiveStyle}">
         <div class="dp-info">
-          <div class="dp-name">${esc(p.network)} · ${esc(p.plan_name)}</div>
-          <div class="dp-meta">Code: ${esc(p.plan_code || '—')}</div>
+          <div class="dp-name">${esc(p.network)} · ${esc(p.plan_name)} <span style="color:var(--text2);font-weight:400;font-size:12px;">· ${esc(provider)}</span></div>
+          <div class="dp-meta">Code: ${esc(p.plan_code || '—')} ${p.is_active ? '' : '· <span style="color:var(--danger);">Inactive</span>'}</div>
+        </div>
+        <div class="promo-toggle-col">
+          <div class="promo-toggle-label">Active</div>
+          <label class="promo-switch">
+            <input type="checkbox" ${p.is_active ? 'checked' : ''} onchange="toggleDataPlanActive(${p.id}, this)"/>
+            <span class="promo-slider"></span>
+          </label>
         </div>
         <div class="promo-toggle-col">
           <div class="promo-toggle-label">Promo</div>
@@ -1596,6 +1615,42 @@ window.toggleDataPlanPromo = async function(id, checkboxEl){
   }
 }
 
+window.toggleDataPlanActive = async function(id, checkboxEl){
+  const is_active = checkboxEl.checked;
+  const p = dpListCache.find(x => x.id === id);
+  const label = p ? `${p.network} · ${p.plan_name}` : 'this plan';
+
+  const confirmed = confirm(
+    is_active
+      ? `Reactivate ${label}? Customers will be able to buy it again immediately.`
+      : `Deactivate ${label}? Customers will no longer be able to buy it.`
+  );
+
+  if(!confirmed){
+    checkboxEl.checked = !is_active;
+    return;
+  }
+
+  try{
+    const res = await api(`/api/admin/data-plans/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active })
+    });
+    const data = await res.json();
+    if(data.success){
+      const idx = dpListCache.findIndex(x => x.id === id);
+      if(idx !== -1) dpListCache[idx].is_active = is_active;
+      renderDataPlans();
+    } else {
+      alert('Could not update active status: ' + (data.message || 'Unknown error'));
+      checkboxEl.checked = !is_active;
+    }
+  }catch(e){
+    alert('Network error. Try again.');
+    checkboxEl.checked = !is_active;
+  }
+}
+
 window.syncDataPlans = async function(){
   const btn = byId('dpSyncBtn');
   const msg = byId('dpSyncMsg');
@@ -1621,6 +1676,34 @@ window.syncDataPlans = async function(){
   }finally{
     btn.disabled = false;
     btn.textContent = '🔄 Sync from Clubkonnect';
+  }
+}
+
+window.syncEricoDataPlans = async function(){
+  const btn = byId('dpSyncEricoBtn');
+  const msg = byId('dpSyncMsg');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  msg.className = 'wallet-msg';
+  msg.textContent = '';
+
+  try{
+    const res = await api('/api/admin/data-plans/sync-ericodata', { method: 'POST' });
+    const data = await res.json();
+    if(data.success){
+      msg.textContent = data.message;
+      msg.classList.add(data.data?.errors?.length ? 'err' : 'ok');
+      await loadDataPlans();
+    } else {
+      msg.textContent = data.message || 'Sync failed.';
+      msg.classList.add('err');
+    }
+  }catch(e){
+    msg.textContent = 'Network error. Try again.';
+    msg.classList.add('err');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync from EricoData';
   }
 }
 
