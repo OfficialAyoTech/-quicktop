@@ -2262,6 +2262,7 @@ function renderMarketingOverview(d){
 // COUPONS & REWARDS (PROMOTIONS)
 let promoListCache = [];
 let editingPromoId = null;
+let couponsSubTab = 'active';
 
 const REQUIRED_SERVICE_OPTIONS = [
   ['', 'Any Service'],
@@ -2349,13 +2350,33 @@ function renderPromotionsPanel(){
       </div>
     </div>
 
-    <div class="fin-section-label">Existing Coupons</div>
+    <div class="legal-tabs" style="margin-top:6px;">
+      <button class="legal-tab-btn ${couponsSubTab==='active'?'active':''}" onclick="switchCouponsSubTab('active')">Active</button>
+      <button class="legal-tab-btn ${couponsSubTab==='scheduled'?'active':''}" onclick="switchCouponsSubTab('scheduled')">Scheduled</button>
+      <button class="legal-tab-btn ${couponsSubTab==='expired'?'active':''}" onclick="switchCouponsSubTab('expired')">Expired</button>
+      <button class="legal-tab-btn ${couponsSubTab==='claims'?'active':''}" onclick="switchCouponsSubTab('claims')">Claims</button>
+    </div>
   `;
 
-  if(!promoListCache.length){
-    html += `<div class="dash-loading" style="padding:0 0 20px;">No coupons created yet.</div>`;
+  if(couponsSubTab === 'claims'){
+    html += `<div id="couponsClaimsWrap"><div class="dash-loading">Loading claims...</div></div>`;
+    wrap.innerHTML = html;
+    loadPromoClaimsList();
+    return;
+  }
+
+  const filtered = promoListCache.filter(p => {
+    const status = computePromoStatus(p);
+    if(couponsSubTab === 'expired') return status === 'EXPIRED' || status === 'INACTIVE';
+    return status === couponsSubTab.toUpperCase();
+  });
+
+  const emptyLabels = { active:'No active coupons.', scheduled:'No scheduled coupons.', expired:'No expired or inactive coupons.' };
+
+  if(!filtered.length){
+    html += `<div class="dash-loading" style="padding:0 0 20px;">${emptyLabels[couponsSubTab]}</div>`;
   } else {
-    html += promoListCache.map(p => {
+    html += filtered.map(p => {
       const status = p.is_active ? 'ACTIVE' : 'SUSPENDED';
       const statusLabel = p.is_active ? 'Active' : 'Inactive';
       const win = `${toDateInputValue(p.start_date)} → ${toDateInputValue(p.expiry_date)}`;
@@ -2381,6 +2402,56 @@ function renderPromotionsPanel(){
   }
 
   wrap.innerHTML = html;
+}
+
+window.switchCouponsSubTab = function(tab){
+  couponsSubTab = tab;
+  renderPromotionsPanel();
+}
+
+async function loadPromoClaimsList(){
+  const wrap = byId('couponsClaimsWrap');
+  if(!wrap) return;
+
+  try{
+    const res = await api('/api/admin/promotions-claims/recent?limit=100');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load claims: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    const claims = data.data || [];
+
+    if(!claims.length){
+      wrap.innerHTML = '<div class="dash-loading">No claims yet.</div>';
+      return;
+    }
+
+    const promoNameById = {};
+    promoListCache.forEach(p => { promoNameById[p.id] = p.name; });
+
+    wrap.innerHTML = claims.map(c => {
+      const promoName = promoNameById[c.promotion_id] || `Promotion #${c.promotion_id}`;
+      const date = c.created_at ? new Date(c.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      const statusCls = c.status === 'CREDITED' ? 'ACTIVE' : (c.status === 'REVERSED' ? 'REJECTED' : 'PENDING');
+      return `
+        <div class="kyc-card">
+          <div class="kyc-info">
+            <div class="kyc-name">${esc(c.full_name || c.email || 'Unknown user')} <span style="color:var(--text2);font-weight:400;">· ${esc(promoName)}</span></div>
+            <div class="kyc-meta">${esc(c.claim_reference || '')}</div>
+            <div class="kyc-date">${date}</div>
+          </div>
+          <div class="tx-amount">₦${fmt(c.amount)}</div>
+          <div class="status-badge ${statusCls}">${esc(c.status)}</div>
+        </div>
+      `;
+    }).join('');
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
 }
 
 function readPromoForm(){
@@ -2535,6 +2606,7 @@ window.deletePromotionRow = async function(id){
 let adListCache = [];
 let adPromoOptionsCache = [];
 let editingAdId = null;
+let adsSubTab = 'active';
 
 const AD_STATUS_LABELS = {
   ACTIVE: 'Live Now',
@@ -2613,13 +2685,25 @@ function renderAdvertisementsPanel(){
       </div>
     </div>
 
-    <div class="fin-section-label">Existing Advertisements</div>
+    <div class="legal-tabs" style="margin-top:6px;">
+      <button class="legal-tab-btn ${adsSubTab==='active'?'active':''}" onclick="switchAdsSubTab('active')">Active</button>
+      <button class="legal-tab-btn ${adsSubTab==='scheduled'?'active':''}" onclick="switchAdsSubTab('scheduled')">Scheduled</button>
+      <button class="legal-tab-btn ${adsSubTab==='expired'?'active':''}" onclick="switchAdsSubTab('expired')">Expired</button>
+    </div>
   `;
 
-  if(!adListCache.length){
-    html += `<div class="dash-loading" style="padding:0 0 20px;">No advertisements created yet.</div>`;
+  const filtered = adListCache.filter(a => {
+    const status = a.effective_status || (a.is_active ? 'ACTIVE' : 'INACTIVE');
+    if(adsSubTab === 'expired') return status === 'EXPIRED' || status === 'INACTIVE';
+    return status === adsSubTab.toUpperCase();
+  });
+
+  const emptyLabels = { active:'No active advertisements.', scheduled:'No scheduled advertisements.', expired:'No expired or inactive advertisements.' };
+
+  if(!filtered.length){
+    html += `<div class="dash-loading" style="padding:0 0 20px;">${emptyLabels[adsSubTab]}</div>`;
   } else {
-    html += adListCache.map(a => {
+    html += filtered.map(a => {
       const status = a.effective_status || (a.is_active ? 'ACTIVE' : 'INACTIVE');
       const win = `${toDateInputValue(a.start_date)} → ${toDateInputValue(a.expiry_date)}`;
       const linkedPromo = adPromoOptionsCache.find(p => p.id === a.linked_promotion_id);
@@ -2647,6 +2731,11 @@ function renderAdvertisementsPanel(){
   }
 
   wrap.innerHTML = html;
+}
+
+window.switchAdsSubTab = function(tab){
+  adsSubTab = tab;
+  renderAdvertisementsPanel();
 }
 
 function buildAdFormData(){
