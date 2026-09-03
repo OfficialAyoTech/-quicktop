@@ -487,7 +487,7 @@ select option{background:var(--surface);}
     <div class="net-badge" id="dataBadge"></div>
     <div class="section-title" style="padding:0 0 12px;">Choose Plan</div>
     <div class="net-pills" id="planFilterTabs" style="margin-bottom:14px;">
-      <div class="net-pill active" data-filter="All" onclick="setPlanFilter('All',this)">All</div>
+      <div class="net-pill active" data-filter="Awoof" onclick="setPlanFilter('Awoof',this)">Awoof</div>
       <div class="net-pill" data-filter="Daily" onclick="setPlanFilter('Daily',this)">Daily</div>
       <div class="net-pill" data-filter="Weekly" onclick="setPlanFilter('Weekly',this)">Weekly</div>
       <div class="net-pill" data-filter="Monthly" onclick="setPlanFilter('Monthly',this)">Monthly</div>
@@ -1182,11 +1182,12 @@ async function loadPlansForNetwork(net){
     const data = await res.json();
     if(data.success && Array.isArray(data.data)){
       planCache[key] = data.data.map(p=>({
-        s: p.name,
-        v: deriveValidity(p.name),
-        p: Number(p.amount),
-        c: p.code
-      }));
+  s: p.name,
+  v: deriveValidity(p.name),
+  mb: deriveSizeMB(p.name),
+  p: Number(p.amount),
+  c: p.code
+}));
     } else {
       planCache[key] = [];
     }
@@ -1195,6 +1196,19 @@ async function loadPlansForNetwork(net){
   }
   planLoading[key] = false;
   if((dataNet||'MTN').toUpperCase() === key) renderPlans();
+}
+
+// Awoof = cheap small-size plans (exact 500MB / 1GB / 2GB only, no rounding).
+function deriveSizeMB(name){
+  const m = (name||'').match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+  if(!m) return null;
+  const num = parseFloat(m[1]);
+  const unit = m[2].toUpperCase();
+  return unit === 'GB' ? Math.round(num*1024) : Math.round(num);
+}
+const AWOOF_SIZES_MB = [500, 1024, 2048]; // 500MB, 1GB, 2GB — exact match only
+function isAwoofPlan(p){
+  return p.mb !== null && AWOOF_SIZES_MB.includes(p.mb);
 }
 
 // CABLE TV PACKAGES — fetched live from backend (admin-controlled pricing),
@@ -1778,7 +1792,7 @@ window.autoNet = function(phone,type){
 }
 
 // PLANS
-let planFilter = 'All';
+let planFilter = 'Awoof';
 
 function planCategory(p){
   const v=(p.v||'').toLowerCase(), s=(p.s||'').toLowerCase();
