@@ -1173,6 +1173,19 @@ function deriveValidity(name){
   return '';
 }
 
+// Awoof = cheap small-size plans (exact 500MB / 1GB / 2GB only, no rounding).
+function deriveSizeMB(name){
+  const m = (name||'').match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+  if(!m) return null;
+  const num = parseFloat(m[1]);
+  const unit = m[2].toUpperCase();
+  return unit === 'GB' ? Math.round(num*1024) : Math.round(num);
+}
+const AWOOF_SIZES_MB = [500, 1024, 2048]; // 500MB, 1GB, 2GB — exact match only
+function isAwoofPlan(p){
+  return p.mb !== null && AWOOF_SIZES_MB.includes(p.mb);
+}
+
 async function loadPlansForNetwork(net){
   const key = (net||'MTN').toUpperCase();
   if(planCache[key] || planLoading[key]) return;
@@ -1196,19 +1209,6 @@ async function loadPlansForNetwork(net){
   }
   planLoading[key] = false;
   if((dataNet||'MTN').toUpperCase() === key) renderPlans();
-}
-
-// Awoof = cheap small-size plans (exact 500MB / 1GB / 2GB only, no rounding).
-function deriveSizeMB(name){
-  const m = (name||'').match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
-  if(!m) return null;
-  const num = parseFloat(m[1]);
-  const unit = m[2].toUpperCase();
-  return unit === 'GB' ? Math.round(num*1024) : Math.round(num);
-}
-const AWOOF_SIZES_MB = [500, 1024, 2048]; // 500MB, 1GB, 2GB — exact match only
-function isAwoofPlan(p){
-  return p.mb !== null && AWOOF_SIZES_MB.includes(p.mb);
 }
 
 // CABLE TV PACKAGES — fetched live from backend (admin-controlled pricing),
@@ -1818,13 +1818,19 @@ function renderPlans(){
     return;
   }
 
-  const plans=allPlans.filter(p=>planFilter==='All'||planCategory(p)===planFilter);
-  byId('plansGrid').innerHTML=plans.map((p)=>`
-    <div class="plan-card ${p.c===selPlanCode?'selected':''}" onclick="pickPlan('${p.c}')">
-      <div class="plan-size">${p.s}</div>
-      <div class="plan-val">${p.v}</div>
-      <div class="plan-price">₦${p.p.toLocaleString()}</div>
-    </div>`).join('');
+  const plans=allPlans.filter(p=>planFilter==='Awoof'?isAwoofPlan(p):planCategory(p)===planFilter);
+
+if(!plans.length){
+  byId('plansGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text2);padding:30px 0;">${planFilter==='Awoof' ? 'No Awoof (cheap) plans available for '+dataNet+' right now.' : 'No plans found.'}</div>`;
+  return;
+}
+
+byId('plansGrid').innerHTML=plans.map((p)=>`
+  <div class="plan-card ${p.c===selPlanCode?'selected':''}" onclick="pickPlan('${p.c}')">
+    <div class="plan-size">${p.s}</div>
+    <div class="plan-val">${p.v}</div>
+    <div class="plan-price">₦${p.p.toLocaleString()}</div>
+  </div>`).join('');
 }
 window.pickPlan=function(code){selPlanCode=code;renderPlans();updatePaySourceUI('data',currentAmount('data'));}
 window.setAmt=function(a){byId('airtimeAmt').value=a;updatePaySourceUI('airtime',a);}
