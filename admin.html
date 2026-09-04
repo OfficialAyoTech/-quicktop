@@ -288,6 +288,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <div class="nav-link" id="navCashback" onclick="showAdminSection('cashback')">Cashback</div>
         <div class="nav-link" id="navFinancial" onclick="showAdminSection('financial')">Financial</div>
         <div class="nav-link" id="navLegal" onclick="showAdminSection('legal')">Legal</div>
+        <div class="nav-link" id="navSettings" onclick="showAdminSection('settings')">Settings</div>
       </div>
     </div>
     <div class="topbar-right">
@@ -524,6 +525,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
   </div>
 
+  <div id="settingsSection" class="hidden">
+    <div class="dash-wrap">
+      <div class="dash-title">Settings</div>
+      <div class="dash-sub">Global app configuration. Changes apply to the customer app instantly — no redeploy needed.</div>
+
+      <div id="settingsMsg" class="wallet-msg"></div>
+
+      <div id="settingsWrap">
+        <div class="dash-loading">Loading settings...</div>
+      </div>
+    </div>
+  </div>
+
   <div id="legalSection" class="hidden">
     <div class="dash-wrap">
       <div class="dash-title">Legal Documents</div>
@@ -730,7 +744,7 @@ onAuthStateChanged(auth, async (user) => {
 // SECTION SWITCHING
 window.showAdminSection = function(section){
   document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec', cashback:'navCashback', financial:'navFinancial', legal:'navLegal' };
+  const navMap = { dashboard:'navDashboard', kyc:'navKyc', users:'navUsers', transactions:'navTransactions', services:'navServices', dataplans:'navDataPlans', cableplans:'navCablePlans', waec:'navWaec', cashback:'navCashback', financial:'navFinancial', legal:'navLegal', settings:'navSettings' };
   byId(navMap[section]).classList.add('active');
   hide('dashboardSection');
   hide('kycSection');
@@ -743,6 +757,7 @@ window.showAdminSection = function(section){
   hide('cashbackSection');
   hide('financialSection');
   hide('legalSection');
+  hide('settingsSection');
   if(section === 'dashboard'){
     show('dashboardSection');
   } else if(section === 'kyc'){
@@ -774,6 +789,9 @@ window.showAdminSection = function(section){
   } else if(section === 'financial'){
     show('financialSection');
     loadFinOverview();
+  } else if(section === 'settings'){
+    show('settingsSection');
+    loadSettings();
   } else {
     show('legalSection');
     loadLegalDocs();
@@ -3439,6 +3457,95 @@ window.syncSettlements = async function(){
   }catch(e){
     finMsg('Network error. Try again.', true);
     if(btn){ btn.disabled = false; btn.textContent = '🔄 Sync from Paystack'; }
+  }
+}
+
+// SETTINGS
+const SETTINGS_LABELS = {
+  referral_bonus: { label: 'Referral Bonus (₦)', help: 'Amount credited when a referred user completes their first qualifying transaction. Note: this changes the copy shown in the app; verify your referral payout logic on the backend also reads this value.' },
+  min_wallet_funding: { label: 'Minimum Wallet Funding (₦)', help: 'Smallest amount a user can fund their wallet with via Paystack.' },
+  min_airtime_purchase: { label: 'Minimum Airtime Purchase (₦)', help: 'Smallest airtime amount a user can buy.' },
+  support_whatsapp: { label: 'Support WhatsApp Number', help: 'Format: 234XXXXXXXXXX (no + or leading 0). Used for the "Contact Support" link in the app.' },
+  airtime_quick_amounts: { label: 'Airtime Quick-Amount Buttons', help: 'Comma-separated, e.g. 100,200,500,1000' },
+  funding_quick_amounts: { label: 'Wallet Funding Quick-Amount Buttons', help: 'Comma-separated, e.g. 500,1000,2000,5000' }
+};
+
+let settingsCache = {};
+
+async function loadSettings(){
+  const wrap = byId('settingsWrap');
+  wrap.innerHTML = '<div class="dash-loading">Loading settings...</div>';
+
+  try{
+    const res = await api('/api/admin/settings');
+    const data = await res.json();
+
+    if(!data.success){
+      wrap.innerHTML = `<div class="dash-error">Could not load settings: ${data.message || 'Unknown error'}</div>`;
+      return;
+    }
+
+    settingsCache = data.data || {};
+    renderSettings();
+
+  }catch(e){
+    wrap.innerHTML = '<div class="dash-error">Network error — could not reach the server.</div>';
+  }
+}
+
+function renderSettings(){
+  const wrap = byId('settingsWrap');
+
+  wrap.innerHTML = Object.keys(SETTINGS_LABELS).map(key => {
+    const meta = SETTINGS_LABELS[key];
+    const currentValue = settingsCache[key] ?? '';
+    return `
+      <div class="cb-card">
+        <div class="cb-name">${esc(meta.label)}</div>
+        <div class="cb-row">
+          <div class="cb-field" style="flex:2;">
+            <label>Value</label>
+            <input type="text" id="setting-${key}" value="${esc(currentValue)}"/>
+          </div>
+          <button class="dp-save-btn" onclick="saveSetting('${key}')">Save</button>
+        </div>
+        <div class="fin-list-meta" style="margin-top:8px;">${esc(meta.help)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.saveSetting = async function(key){
+  const input = byId(`setting-${key}`);
+  const value = input.value.trim();
+  const msg = byId('settingsMsg');
+
+  if(!value){
+    msg.className = 'wallet-msg err';
+    msg.textContent = 'Value cannot be empty.';
+    return;
+  }
+
+  msg.className = 'wallet-msg';
+  msg.textContent = 'Saving...';
+
+  try{
+    const res = await api('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ [key]: value })
+    });
+    const data = await res.json();
+    if(data.success){
+      settingsCache = data.data;
+      msg.className = 'wallet-msg ok';
+      msg.textContent = `${SETTINGS_LABELS[key].label} updated successfully.`;
+    } else {
+      msg.className = 'wallet-msg err';
+      msg.textContent = data.message || 'Could not update setting.';
+    }
+  }catch(e){
+    msg.className = 'wallet-msg err';
+    msg.textContent = 'Network error. Try again.';
   }
 }
 
