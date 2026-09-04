@@ -522,12 +522,7 @@ select option{background:var(--surface);}
       <label>Amount (₦)</label>
       <input type="number" id="airtimeAmt" placeholder="e.g. 500" min="50" oninput="updatePaySourceUI('airtime',parseInt(this.value)||0)"/>
     </div>
-    <div class="quick-amounts">
-      <div class="amt-btn" onclick="setAmt(100)">₦100</div>
-      <div class="amt-btn" onclick="setAmt(200)">₦200</div>
-      <div class="amt-btn" onclick="setAmt(500)">₦500</div>
-      <div class="amt-btn" onclick="setAmt(1000)">₦1K</div>
-    </div>
+      <div class="quick-amounts" id="airtimeQuickAmounts"></div>
     <div class="info-box">📞 Airtime delivered <strong>instantly</strong> after payment.</div>
     <div class="pay-source-toggle" style="display:flex;gap:10px;margin-bottom:14px;">
   <div class="pay-pill active" data-src="WALLET" onclick="setPaySource('airtime','WALLET',this)">💳 Wallet</div>
@@ -736,8 +731,8 @@ select option{background:var(--surface);}
   <div class="content">
     <div style="background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:var(--radius);padding:22px;text-align:center;color:#0A0F1E;">
       <div style="font-size:32px;">🎁</div>
-      <div style="font-weight:700;font-size:17px;margin-top:8px;">Invite friends and earn ₦500</div>
-      <div style="font-size:13px;margin-top:4px;opacity:.85;">when they fund their wallet and spend ₦500 or more</div>
+       <div style="font-weight:700;font-size:17px;margin-top:8px;">Invite friends and earn ₦<span id="referHeroAmt1">500</span></div>
+       <div style="font-size:13px;margin-top:4px;opacity:.85;">when they fund their wallet and spend ₦<span id="referHeroAmt2">500</span> or more</div>
       <button class="btn" style="width:100%;margin-top:16px;background:#0A0F1E;color:#fff;border:none;" onclick="shareReferralLink()">Invite Friends</button>
     </div>
 
@@ -776,7 +771,7 @@ select option{background:var(--surface);}
       <div id="referHistoryList"></div>
     </div>
 
-    <div class="info-box" style="margin-top:16px;">💡 Share your link → your friend signs up, funds their wallet, and spends ₦500 or more → you earn ₦500.</div>
+   <div class="info-box" style="margin-top:16px;">💡 Share your link → your friend signs up, funds their wallet, and spends ₦500 or more → you earn ₦<span id="referInfoAmt">500</span>.</div>
   </div>
 </div>
 
@@ -902,7 +897,7 @@ select option{background:var(--surface);}
       <div class="menu-icon">🆔</div><div class="menu-text"><p>Verify Identity</p><span id="kycMenuSub">Complete KYC verification</span></div><span style="color:var(--text2);">›</span>
     </div>
     <div class="menu-item" onclick="goTo('referScreen')">
-      <div class="menu-icon">🎁</div><div class="menu-text"><p>Refer & Earn</p><span>Get ₦500 per referral</span></div><span style="color:var(--text2);">›</span>
+     <div class="menu-icon">🎁</div><div class="menu-text"><p>Refer & Earn</p><span>Get ₦<span id="profileReferAmt">500</span> per referral</span></div><span style="color:var(--text2);">›</span>
     </div>
   </div>
 
@@ -920,7 +915,7 @@ select option{background:var(--surface);}
     <div class="menu-item" onclick="showInfoModal('FAQ', faqContent)">
       <div class="menu-icon">❓</div><div class="menu-text"><p>FAQ</p><span>Common questions</span></div><span style="color:var(--text2);">›</span>
     </div>
-    <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20need%20help" target="_blank" class="menu-item" style="text-decoration:none;color:inherit;">
+     <a href="https://wa.me/2347064819881?text=Hi%20QuickTop%2C%20I%20need%20help" target="_blank" id="supportWhatsappLink" class="menu-item" style="text-decoration:none;color:inherit;">
       <div class="menu-icon">🛠️</div><div class="menu-text"><p>Contact Support</p><span>Chat with us on WhatsApp</span></div><span style="color:var(--text2);">›</span>
     </a>
     <div class="menu-item" onclick="openLegalDoc('privacy_policy','Privacy Policy')">
@@ -1029,14 +1024,9 @@ select option{background:var(--surface);}
       <label>Amount (₦)</label>
       <input type="number" id="fundAmt" placeholder="e.g. 1000" min="100" inputmode="numeric"/>
     </div>
-    <div class="quick-amounts">
-      <div class="amt-btn" onclick="setFundAmt(500)">₦500</div>
-      <div class="amt-btn" onclick="setFundAmt(1000)">₦1,000</div>
-      <div class="amt-btn" onclick="setFundAmt(2000)">₦2,000</div>
-      <div class="amt-btn" onclick="setFundAmt(5000)">₦5,000</div>
-    </div>
+     <div class="quick-amounts" id="fundQuickAmounts"></div>
     <button class="btn btn-primary" id="fundBtn" style="width:100%;margin-top:14px;" onclick="fundWallet()">Pay with Paystack</button>
-    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;">Secured by Paystack • Minimum ₦100</p>
+    <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:10px;">Secured by Paystack • Minimum ₦<span id="fundMinLabel">100</span></p>
   </div>
 </div>
 
@@ -1155,6 +1145,52 @@ const NETS = {
 // DATA PLANS — fetched live from backend (admin-controlled pricing).
 // Replaces the old hardcoded price list so admin price/margin edits show up
 // in the app immediately without a frontend redeploy.
+// APP SETTINGS — fetched once per session from the public /api/settings
+// endpoint (no auth needed). Falls back to these defaults if the fetch
+// fails, so the app never breaks even if settings are temporarily down.
+let appSettings = {};
+function getSetting(key, fallback){
+  return appSettings[key] !== undefined ? appSettings[key] : fallback;
+}
+async function loadAppSettings(){
+  try{
+    const res = await fetch(BACKEND + '/api/settings');
+    const data = await res.json();
+    if(data.success && data.data) appSettings = data.data;
+  }catch(e){
+    // silent — defaults kick in via getSetting()
+  }
+}
+function renderQuickAmounts(containerId, settingKey, fallbackCsv, setterFnName){
+  const el = byId(containerId);
+  if(!el) return;
+  const amounts = getSetting(settingKey, fallbackCsv).split(',').map(n=>parseInt(n.trim(),10)).filter(n=>!isNaN(n));
+  el.innerHTML = amounts.map(a=>{
+    const label = a >= 1000 ? '₦'+(a/1000)+'K' : '₦'+a.toLocaleString();
+    return `<div class="amt-btn" onclick="${setterFnName}(${a})">${label}</div>`;
+  }).join('');
+}
+function applySettingsToUI(){
+  renderQuickAmounts('airtimeQuickAmounts', 'airtime_quick_amounts', '100,200,500,1000', 'setAmt');
+  renderQuickAmounts('fundQuickAmounts', 'funding_quick_amounts', '500,1000,2000,5000', 'setFundAmt');
+
+  const waNum = getSetting('support_whatsapp', '2347064819881');
+  const waLink = byId('supportWhatsappLink');
+  if(waLink) waLink.href = `https://wa.me/${waNum}?text=Hi%20QuickTop%2C%20I%20need%20help`;
+
+  const minFund = getSetting('min_wallet_funding', '100');
+  const fundInput = byId('fundAmt');
+  if(fundInput) fundInput.min = minFund;
+  const fundMinLabel = byId('fundMinLabel');
+  if(fundMinLabel) fundMinLabel.textContent = minFund;
+
+  const refBonus = getSetting('referral_bonus', '500');
+  ['referHeroAmt1','referHeroAmt2','referInfoAmt','profileReferAmt'].forEach(id=>{
+    const el = byId(id);
+    if(el) el.textContent = refBonus;
+  });
+}
+
 let planCache = {};
 let planLoading = {};
 
@@ -1373,6 +1409,7 @@ async function loadTx() {
 
 // APP
 function enterApp(){
+  loadAppSettings().then(applySettingsToUI);
   document.querySelectorAll('.auth').forEach(a=>a.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   show('nav');
@@ -1881,7 +1918,8 @@ const data = await res.json();
 window.buyAirtime = async function(){
   const phone=val('airtimePhone'), amount=parseInt(val('airtimeAmt'));
   if(!phone||phone.length<10){toast('Enter valid phone number');return;}
-  if(!amount||amount<50){toast('Minimum airtime is ₦50');return;}
+  const minAirtime = Number(getSetting('min_airtime_purchase', 50));
+  if(!amount||amount<minAirtime){toast('Minimum airtime is ₦'+minAirtime);return;}
   const pin = await askPin();
   if(!pin) return;
   const btn=byId('airtimeBtn'); btn.textContent='Processing...'; btn.disabled=true;
@@ -2451,7 +2489,8 @@ window.setFundAmt=function(a){byId('fundAmt').value=a;}
 
 window.fundWallet = async function(){
   const amount = parseInt(val('fundAmt'));
-  if(!amount || amount < 100){ toast('Minimum funding amount is ₦100'); return; }
+  const minFunding = Number(getSetting('min_wallet_funding', 100));
+  if(!amount || amount < minFunding){ toast('Minimum funding amount is ₦'+minFunding); return; }
 
   const pin = await askPin();
   if(!pin) return;
