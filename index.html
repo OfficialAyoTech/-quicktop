@@ -339,12 +339,12 @@ select option{background:var(--surface);}
   <p class="auth-sub">Sign in to continue</p>
   <div class="form-group">
     <label>Email Address</label>
-    <input type="email" id="loginEmail" placeholder="you@example.com"/>
+    <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email"/>
   </div>
   <div class="form-group">
     <label>Password</label>
     <div class="pass-wrap">
-      <input type="password" id="loginPass" placeholder="Enter password"/>
+      <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password"/>
       <button class="eye-btn" onclick="toggleEye('loginPass',this)" tabindex="-1">👁️</button>
     </div>
     <div style="text-align:right;margin-top:8px;">
@@ -371,14 +371,14 @@ select option{background:var(--surface);}
   </div>
   <h2 class="auth-title">Create account</h2>
   <p class="auth-sub">Join thousands saving on data</p>
-  <div class="form-group"><label>Full Name</label><input type="text" id="sigName" placeholder="e.g. Ayodeji Salami"/></div>
+  <div class="form-group"><label>Full Name</label><input type="text" id="sigName" placeholder="e.g. James Brown"/></div>
   <div class="form-group"><label>Phone Number</label><input type="tel" id="sigPhone" placeholder="080XXXXXXXX" maxlength="11"/></div>
   <div class="form-group"><label>Email Address</label><input type="email" id="sigEmail" placeholder="you@example.com"/></div>
   <div class="form-group"><label>Password</label>
-    <div class="pass-wrap"><input type="password" id="sigPass" placeholder="Min 6 characters"/><button class="eye-btn" onclick="toggleEye('sigPass',this)" tabindex="-1">👁️</button></div>
+    <div class="pass-wrap"><input type="password" id="sigPass" placeholder="Min 6 characters" autocomplete="new-password"/><button class="eye-btn" onclick="toggleEye('sigPass',this)" tabindex="-1">👁️</button></div>
   </div>
   <div class="form-group"><label>Confirm Password</label>
-    <div class="pass-wrap"><input type="password" id="sigConfirm" placeholder="Re-enter password"/><button class="eye-btn" onclick="toggleEye('sigConfirm',this)" tabindex="-1">👁️</button></div>
+    <div class="pass-wrap"><input type="password" id="sigConfirm" placeholder="Re-enter password" autocomplete="new-password"/><button class="eye-btn" onclick="toggleEye('sigConfirm',this)" tabindex="-1">👁️</button></div>
   </div>
   <div class="form-group" style="display:flex;align-items:flex-start;gap:10px;">
     <input type="checkbox" id="sigAgreeTerms" style="width:auto;margin-top:3px;flex-shrink:0;accent-color:var(--accent);"/>
@@ -980,11 +980,11 @@ select option{background:var(--surface);}
     <div class="info-box">🔒 This 4-digit PIN will be required to confirm every purchase and wallet funding.</div>
     <div class="input-stack">
       <label>New PIN</label>
-      <input type="password" id="newPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+      <input type="text" id="newPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;"/>
     </div>
     <div class="input-stack">
       <label>Confirm PIN</label>
-      <input type="password" id="confirmPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+      <input type="text" id="confirmPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;"/>
     </div>
     <button class="btn btn-primary" id="createPinBtn" onclick="submitCreatePin()">Create PIN</button>
   </div>
@@ -996,15 +996,15 @@ select option{background:var(--surface);}
   <div class="content">
     <div class="input-stack">
       <label>Current PIN</label>
-      <input type="password" id="oldPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+      <input type="text" id="oldPinInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;"/>
     </div>
     <div class="input-stack">
       <label>New PIN</label>
-      <input type="password" id="newPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+      <input type="text" id="newPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;"/>
     </div>
     <div class="input-stack">
       <label>Confirm New PIN</label>
-      <input type="password" id="confirmPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;"/>
+      <input type="text" id="confirmPinInput2" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;"/>
     </div>
     <button class="btn btn-primary" id="changePinBtn" onclick="submitChangePin()">Change PIN</button>
   </div>
@@ -1047,7 +1047,7 @@ select option{background:var(--surface);}
     <div class="modal-title">Enter Transaction PIN</div>
     <div class="input-stack">
       <label>4-Digit PIN</label>
-      <input type="password" id="pinPromptInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;" onkeydown="if(event.key==='Enter')confirmPinPrompt()"/>
+      <input type="text" id="pinPromptInput" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" style="text-align:center;letter-spacing:10px;font-size:24px;-webkit-text-security:disc;" onkeydown="if(event.key==='Enter')confirmPinPrompt()"/>
     </div>
     <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="confirmPinPrompt()">Confirm</button>
     <button class="btn btn-outline" style="width:100%;margin-top:10px;" onclick="cancelPinPrompt()">Cancel</button>
