@@ -2349,9 +2349,19 @@ function renderPromotionsPanel(){
         <input type="number" id="promoMaxClaims" placeholder="Max total claims (blank = unlimited)" min="1" step="1"/>
         <input type="number" id="promoMaxClaimsPerUser" placeholder="Max claims per user" min="1" step="1" value="1"/>
       </div>
-      <div class="fin-form-row">
+        <div class="fin-form-row">
         <select id="promoRequiredService">${serviceOptions}</select>
         <select id="promoEligibility">${eligibilityOptions}</select>
+      </div>
+      <div class="fin-form-row">
+        <select id="promoTargetNetwork">
+          <option value="">All Networks</option>
+          <option value="MTN">MTN</option>
+          <option value="AIRTEL">Airtel</option>
+          <option value="GLO">Glo</option>
+          <option value="9MOBILE">9mobile</option>
+        </select>
+        <input type="number" id="promoInactiveDays" placeholder="Inactive days (blank = show to everyone)" min="1" step="1"/>
       </div>
       <div class="fin-form-row">
         <input type="date" id="promoStartDate"/>
@@ -2402,10 +2412,11 @@ function renderPromotionsPanel(){
       const svc = svcEntry ? svcEntry[1] : p.required_service;
       return `
         <div class="kyc-card">
-          <div class="kyc-info">
+           <div class="kyc-info">
             <div class="kyc-name">${esc(p.name)} ${p.coupon_code ? `<span style="color:var(--text2);font-weight:400;">· ${esc(p.coupon_code)}</span>` : ''}</div>
             <div class="kyc-meta">₦${fmt(p.reward_amount)} reward · ${esc(svc)} · ${esc(ELIGIBILITY_LABELS[p.eligibility] || p.eligibility)}</div>
             <div class="kyc-date">${win} · max ${p.max_claims ?? '∞'} claims (${p.max_claims_per_user} per user)</div>
+            ${(p.target_network || p.inactive_days) ? `<div class="kyc-date">🎯 ${p.target_network ? esc(p.target_network) : 'All networks'}${p.inactive_days ? ` · inactive ${p.inactive_days}+ days` : ''}</div>` : ''}
           </div>
           <div class="status-badge ${status}">${statusLabel}</div>
           <label class="toggle-switch" style="margin-left:10px;">
@@ -2499,7 +2510,9 @@ function readPromoForm(){
     required_service: val('promoRequiredService') || null,
     eligibility: val('promoEligibility') || 'FIRST_TRANSACTION',
     coupon_code: val('promoCode') || null,
-    is_active: byId('promoIsActive').checked
+    is_active: byId('promoIsActive').checked,
+    target_network: val('promoTargetNetwork') || null,
+    inactive_days: val('promoInactiveDays') ? Number(val('promoInactiveDays')) : null
   };
 }
 
@@ -2552,6 +2565,8 @@ window.editPromotion = function(id){
   byId('promoMaxClaimsPerUser').value = p.max_claims_per_user || 1;
   byId('promoRequiredService').value = p.required_service || '';
   byId('promoEligibility').value = p.eligibility || 'FIRST_TRANSACTION';
+  byId('promoTargetNetwork').value = p.target_network || '';
+  byId('promoInactiveDays').value = p.inactive_days ?? '';
   byId('promoStartDate').value = toDateInputValue(p.start_date);
   byId('promoExpiryDate').value = toDateInputValue(p.expiry_date);
   byId('promoIsActive').checked = !!p.is_active;
@@ -2573,6 +2588,8 @@ window.resetPromoForm = function(){
   byId('promoMaxClaimsPerUser').value = '1';
   byId('promoRequiredService').value = '';
   byId('promoEligibility').value = 'FIRST_TRANSACTION';
+  byId('promoTargetNetwork').value = '';
+  byId('promoInactiveDays').value = '';
   byId('promoStartDate').value = '';
   byId('promoExpiryDate').value = '';
   byId('promoIsActive').checked = true;
@@ -2685,8 +2702,18 @@ function renderAdvertisementsPanel(){
         <input type="text" id="adButtonAction" placeholder="Button action (e.g. a screen name or URL)"/>
         <input type="number" id="adDisplayOrder" placeholder="Display order (0 = first)" min="0" step="1" value="0"/>
       </div>
-      <div class="fin-form-row">
+       <div class="fin-form-row">
         <select id="adLinkedPromo">${promoOptions}</select>
+      </div>
+      <div class="fin-form-row">
+        <select id="adTargetNetwork">
+          <option value="">All Networks</option>
+          <option value="MTN">MTN</option>
+          <option value="AIRTEL">Airtel</option>
+          <option value="GLO">Glo</option>
+          <option value="9MOBILE">9mobile</option>
+        </select>
+        <input type="number" id="adInactiveDays" placeholder="Inactive days (blank = show to everyone)" min="1" step="1"/>
       </div>
       <div class="fin-form-row">
         <input type="date" id="adStartDate"/>
@@ -2735,6 +2762,7 @@ function renderAdvertisementsPanel(){
             <div class="kyc-meta">Order ${a.display_order}${a.button_text ? ' · Button: ' + esc(a.button_text) : ''}</div>
             <div class="kyc-date">${win}</div>
             <div class="kyc-date">👁️ ${a.impression_count||0} impressions · 🖱️ ${a.click_count||0} clicks (${a.impression_count ? ((a.click_count||0)/a.impression_count*100).toFixed(1) : '0.0'}% CTR)${linkedPromo ? ` · 🎟️ ${a.claim_count||0} claims · ₦${fmt(a.rewards_distributed||0)} distributed` : ''}</div>
+            ${(a.target_network || a.inactive_days) ? `<div class="kyc-date">🎯 ${a.target_network ? esc(a.target_network) : 'All networks'}${a.inactive_days ? ` · inactive ${a.inactive_days}+ days` : ''}</div>` : ''}
           </div>
           <div class="status-badge ${status === 'ACTIVE' ? 'ACTIVE' : (status === 'EXPIRED' ? 'REJECTED' : 'PENDING')}">${AD_STATUS_LABELS[status] || status}</div>
           <label class="toggle-switch" style="margin-left:10px;">
@@ -2778,6 +2806,8 @@ function buildAdFormData(){
   fd.append('start_date', start_date);
   fd.append('expiry_date', expiry_date);
   fd.append('linked_promotion_id', val('adLinkedPromo'));
+  fd.append('target_network', val('adTargetNetwork'));
+  fd.append('inactive_days', val('adInactiveDays'));
   if(editingAdId === null) fd.append('is_active', byId('adIsActiveHidden') ? byId('adIsActiveHidden').value : 'true');
   if(file) fd.append('image', file);
 
@@ -2830,6 +2860,8 @@ window.editAd = function(id){
   byId('adButtonAction').value = a.button_action || '';
   byId('adDisplayOrder').value = a.display_order ?? 0;
   byId('adLinkedPromo').value = a.linked_promotion_id || '';
+  byId('adTargetNetwork').value = a.target_network || '';
+  byId('adInactiveDays').value = a.inactive_days ?? '';
   byId('adStartDate').value = toDateInputValue(a.start_date);
   byId('adExpiryDate').value = toDateInputValue(a.expiry_date);
   byId('adImageFile').value = '';
@@ -2850,6 +2882,8 @@ window.resetAdForm = function(){
   byId('adButtonAction').value = '';
   byId('adDisplayOrder').value = '0';
   byId('adLinkedPromo').value = '';
+  byId('adTargetNetwork').value = '';
+  byId('adInactiveDays').value = '';
   byId('adStartDate').value = '';
   byId('adExpiryDate').value = '';
   byId('adImageFile').value = '';
